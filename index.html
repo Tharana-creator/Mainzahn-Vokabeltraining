@@ -26,7 +26,7 @@ input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;ma
 .notice{padding:13px;border-radius:12px;background:#eef7fa;margin:12px 0} .locked{opacity:.55}
 @media(max-width:600px){header{padding:14px} main{margin:16px auto} .brand{font-size:20px}}
 </style>
-</head>
+<script src="config.js"></script></head>
 <body>
 <div id="app"></div>
 <script>
@@ -2273,177 +2273,32 @@ const MONTHS = [
   ]
 ];
 const TOTAL = 277;
-const DEMO_USERS = [
-  {user:"azubi", pass:"mainzahn2026", role:"azubi", name:"Azubi Demo"},
-  {user:"ausbilder", pass:"mainzahn2026", role:"ausbilder", name:"Ausbilder Demo"}
-];
+const app=document.getElementById("app");
+const state={user:null,profile:null,tab:"home",learn:0,exam:null,results:{}};
+const names=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+const tidy=s=>String(s??"").replace(/\s*\n\s*/g," ").replace(/\s{2,}/g," ").trim();
+const now=()=>new Date();
+const examMonth=()=>now().getMonth()+1;
+const exerciseMonth=()=>{const d=now(),m=d.getMonth()+1;return d.getDate()>=21?(m%12)+1:m};
+const examOpen=()=>now().getDate()>=16;
+const monthName=m=>names[m-1];
+function fail(t,d=""){app.innerHTML=`<main><div class="card"><h1>Mainzahn</h1><div class="error"><b>${esc(t)}</b>${d?`<br><br>${esc(d)}`:""}</div></div></main>`}
+let sb;
+async function loginScreen(){
+ app.innerHTML=`<main><div class="card login"><div class="logo">Mainzahn</div><p class="muted">Azubi Vokabeltrainer</p><h2>Anmelden</h2><input id="email" type="email" placeholder="E-Mail"><input id="password" type="password" placeholder="Passwort"><button id="login">Anmelden</button><div id="err" class="error hidden"></div></div></main>`;
+ document.getElementById("login").onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:email.value.trim(),password:password.value});if(error){err.textContent=error.message;err.classList.remove("hidden")}else await boot()};
+}
+function shell(content){app.innerHTML=`<header><div class="top"><div><div class="brand">Mainzahn</div><div class="sub">Azubi Vokabeltrainer</div></div><button id="out" class="secondary">Abmelden</button></div></header><main><div class="tabs"><button class="${state.tab==='home'?'active':''}" data-tab="home">Übersicht</button><button class="${state.tab==='learn'?'active':''}" data-tab="learn">Übung</button><button class="${state.tab==='exam'?'active':''}" data-tab="exam">Prüfung</button></div>${content}</main>`;document.getElementById('out').onclick=async()=>{await sb.auth.signOut();location.reload()};document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;state.exam=null;render()})}
+function home(){const em=exerciseMonth(),xm=examMonth();return `<div class="card"><div class="row"><div><h1>Willkommen, ${esc(state.profile.full_name)}</h1><p class="muted">Rolle: ${esc(state.profile.role)}</p></div><span class="badge">${examOpen()?"Prüfung freigeschaltet":"Übungsphase"}</span></div></div><div class="grid"><div class="card learn"><h2>Übung – ${monthName(em)}</h2><div class="stat">${MONTHS[em-1].length}</div><div class="muted">Vokabeln</div><br><button data-go="learn">Übung starten</button></div><div class="card exam ${examOpen()?'':'locked'}"><h2>Prüfung – ${monthName(xm)}</h2><div class="stat">${examOpen()?MONTHS[xm-1].length:'–'}</div><div class="muted">${examOpen()?'Vokabeln':'ab dem 16. freigeschaltet'}</div><br><button data-go="exam" ${examOpen()?'':'disabled'}>Prüfung starten</button></div></div><div class="notice">Ab dem <b>21. des Vormonats</b> beginnt die Übungsphase für den Folgemonat. Die Prüfung des aktuellen Monats wird am <b>16.</b> freigeschaltet.</div>`}
+function learnView(){const m=exerciseMonth(),list=MONTHS[m-1],i=Math.min(state.learn,list.length-1),v=list[i];return `<div class="card"><div class="row"><h2>Übung – ${monthName(m)}</h2><span>${i+1} / ${list.length}</span></div><div class="progress"><div class="bar" style="width:${((i+1)/list.length)*100}%"></div></div><br><h3>${esc(tidy(v.term))}</h3><p style="font-size:20px;line-height:1.55">${esc(tidy(v.meaning))}</p>${v.practice?`<p><b>Praxis:</b> ${esc(tidy(v.practice))}</p>`:''}${v.prep?`<p><b>Aufbereitung:</b> ${esc(tidy(v.prep))}</p>`:''}<div class="row"><button id="prev" class="secondary">Zurück</button><button id="next">Weiter</button></div></div>`}
+function makeChoices(list,i){const correct=tidy(list[i].meaning);let pool=list.map(x=>tidy(x.meaning)).filter(x=>x&&x!==correct);pool.sort(()=>Math.random()-.5);return [correct,...pool.slice(0,3)].sort(()=>Math.random()-.5)}
+function renderExam(){const m=examMonth(),list=MONTHS[m-1];if(!examOpen())return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung wird am 16. des Monats freigeschaltet.</p></div>`;if(!state.exam)return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung umfasst <b>${list.length}</b> Vokabeln.</p><p class="muted">Nach dem Start werden die Antworten bewertet.</p><button id="startExam">Prüfung starten</button></div>`;const x=state.exam;if(x.i>=list.length){const score=Math.round(x.correct/list.length*100);return `<div class="card"><h2>Prüfung abgeschlossen</h2><div class="stat">${score}%</div><p>${x.correct} von ${list.length} richtig.</p><div class="notice">Das Ergebnis wird deinem angemeldeten Benutzer zugeordnet und in diesem Browser gesichert.</div></div>`}const v=list[x.i];if(!x.choices)x.choices=makeChoices(list,x.i);return `<div class="card exam"><div class="row"><h2>Frage ${x.i+1} / ${list.length}</h2><span class="badge">Prüfung</span></div><div class="progress"><div class="bar" style="width:${((x.i+1)/list.length)*100}%"></div></div><br><h3>${esc(tidy(v.term))}</h3><p>Welche Bedeutung ist richtig?</p>${x.choices.map((c,j)=>`<button class="choice" data-answer="${j}">${esc(c)}</button>`).join('')}</div>`}
+function bind(){document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{state.tab=b.dataset.go;render()});if(state.tab==='learn'){const p=document.getElementById('prev'),n=document.getElementById('next');if(p)p.onclick=()=>{state.learn=Math.max(0,state.learn-1);render()};if(n)n.onclick=()=>{state.learn=(state.learn+1)%MONTHS[exerciseMonth()-1].length;render()}}if(state.tab==='exam'){const s=document.getElementById('startExam');if(s)s.onclick=()=>{state.exam={i:0,correct:0,choices:null};render()};document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{const list=MONTHS[examMonth()-1],correct=tidy(list[state.exam.i].meaning),picked=state.exam.choices[Number(b.dataset.answer)];if(picked===correct)state.exam.correct++;state.exam.i++;state.exam.choices=null;if(state.exam.i>=list.length){const score=Math.round(state.exam.correct/list.length*100);const key=`mz_result_${state.user.id}_${examMonth()}_${now().getFullYear()}`;localStorage.setItem(key,JSON.stringify({score,correct:state.exam.correct,total:list.length,date:new Date().toISOString()}))}render()})}}
+function render(){let c=state.tab==='home'?home():state.tab==='learn'?learnView():renderExam();shell(c);bind()}
+async function boot(){const {data,error}=await sb.auth.getSession();if(error)throw error;if(!data.session)return loginScreen();state.user=data.session.user;const r=await sb.from('profiles').select('*').eq('id',state.user.id).maybeSingle();if(r.error)throw r.error;if(!r.data)return fail('Benutzerprofil fehlt','Für diesen Benutzer fehlt ein Eintrag in profiles.');state.profile=r.data;render()}
+try{const c=window.MAINZAHN_CONFIG;if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw new Error('config.js ist leer oder wird nicht gefunden.');const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');sb=createClient(c.supabaseUrl,c.supabaseAnonKey);await boot()}catch(e){fail('Mainzahn konnte nicht gestartet werden',e.message)}
 
-const state = {
-  user: JSON.parse(localStorage.getItem("mz_user") || "null"),
-  month: new Date().getMonth()+1,
-  learn: Number(localStorage.getItem("mz_learn") || 0),
-  results: JSON.parse(localStorage.getItem("mz_results") || "{}"),
-  tab: "home",
-  exam: null
-};
-
-function save() {
-  localStorage.setItem("mz_user", JSON.stringify(state.user));
-  localStorage.setItem("mz_learn", String(state.learn));
-  localStorage.setItem("mz_results", JSON.stringify(state.results));
-}
-
-function mode() {
-  return new Date().getDate() >= 16 ? "exam" : "learn";
-}
-function monthName(m) {
-  return ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"][m-1];
-}
-function esc(s) { return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c])); }
-
-function login() {
-  document.getElementById("app").innerHTML = `
-    <div class="login card">
-      <div class="logo">Mainzahn</div>
-      <div class="muted">Azubi Vokabeltrainer</div>
-      <hr>
-      <h2>Anmelden</h2>
-      <label>Benutzername</label><input id="u" value="">
-      <label>Passwort</label><input id="p" type="password">
-      <button onclick="doLogin()">Einloggen</button>
-      <div class="notice small"><b>Demo-Zugang:</b><br>Azubi: <b>azubi</b> / <b>mainzahn2026</b><br>Ausbilder: <b>ausbilder</b> / <b>mainzahn2026</b></div>
-    </div>`;
-}
-function doLogin() {
-  const u=document.getElementById("u").value.trim(), p=document.getElementById("p").value;
-  const found=DEMO_USERS.find(x=>x.user===u&&x.pass===p);
-  if(!found) return alert("Benutzername oder Passwort ist falsch.");
-  state.user={role:found.role,name:found.name,user:found.user}; save(); render();
-}
-function logout() { state.user=null; save(); login(); }
-
-function shell(content) {
-  const isExam=mode()==="exam";
-  document.getElementById("app").innerHTML = `
-  <header><div class="top">
-    <div><div class="brand">Mainzahn</div><div class="sub">Azubi Vokabeltrainer</div></div>
-    <div class="row"><span class="badge">${isExam?"PRÜFUNGSMODUS":"LERNMODUS"}</span><span>${esc(state.user.name)}</span><button class="secondary" onclick="logout()">Abmelden</button></div>
-  </div></header>
-  <main>
-    <div class="tabs">
-      <button class="${state.tab==="home"?"active":""}" onclick="state.tab='home';render()">Übersicht</button>
-      ${state.user.role==="azubi" ? `<button class="${state.tab==="learn"?"active":""}" onclick="state.tab='learn';render()">Lernen</button>
-      <button class="${state.tab==="exam"?"active":""}" onclick="state.tab='exam';render()">Prüfung</button>` : `<button class="${state.tab==="admin"?"active":""}" onclick="state.tab='admin';render()">Ausbilderbereich</button>`}
-    </div>
-    ${content}
-  </main>`;
-}
-
-function home() {
-  const m=state.month, list=MONTHS[m-1];
-  const res=state.results[m];
-  const examLocked=mode()!=="exam";
-  return `<div class="card">
-    <div class="row"><div><h1>Monat ${m} – ${monthName(m)}</h1><div class="muted">${list.length} Vokabeln</div></div>
-    <span class="badge">${examLocked?"Lernphase":"Prüfungsphase"}</span></div>
-    <div class="notice">
-      <b>Automatik:</b> Vom 1.–15. werden die Monatsvokabeln gelernt. Ab dem 16. wird die Monatsprüfung freigeschaltet.
-    </div>
-    <div class="grid">
-      <div class="card learn"><div class="stat">${list.length}</div><div class="muted">Vokabeln im Monat</div></div>
-      <div class="card"><div class="stat">${Math.min(state.learn,list.length)}</div><div class="muted">Im Lernmodus bearbeitet</div></div>
-      <div class="card ${res?'':'locked'}"><div class="stat">${res?res.score+"%":"–"}</div><div class="muted">Prüfungsergebnis</div></div>
-    </div>
-    <br>
-    <button onclick="state.tab='learn';render()">Vokabeln lernen</button>
-    <button class="secondary ${examLocked?'locked':''}" onclick="state.tab='exam';render()">Prüfung öffnen</button>
-  </div>`;
-}
-
-function learnView() {
-  const list=MONTHS[state.month-1];
-  const i=Math.min(state.learn,list.length-1), e=list[i];
-  return `<div class="card learn">
-    <div class="row"><h2>Lernen – ${monthName(state.month)}</h2><span>${i+1} / ${list.length}</span></div>
-    <div class="progress"><div class="bar" style="width:${Math.round((i/list.length)*100)}%"></div></div>
-    <br>
-    <h1>${esc(e.term)}</h1>
-    <p class="muted">Bedeutung</p>
-    <p id="meaning" class="hidden"><b>${esc(e.meaning)}</b></p>
-    ${e.practice?`<p id="practice" class="hidden"><b>Praxis:</b> ${esc(e.practice)}</p>`:""}
-    ${e.prep?`<p id="prep" class="hidden"><b>Aufbereitung:</b> ${esc(e.prep)}</p>`:""}
-    <button onclick="document.getElementById('meaning').classList.remove('hidden');document.getElementById('practice')?.classList.remove('hidden');document.getElementById('prep')?.classList.remove('hidden')">Lösung anzeigen</button>
-    <button class="secondary" onclick="nextLearn()">Als gelernt markieren</button>
-  </div>`;
-}
-function nextLearn() {
-  state.learn=Math.min(state.learn+1, MONTHS[state.month-1].length);
-  save(); render();
-}
-
-function startExam() {
-  if(mode()!=="exam") {
-    alert("Die Prüfung wird automatisch am 16. des Monats freigeschaltet.");
-    return;
-  }
-  const list=MONTHS[state.month-1];
-  state.exam={i:0,correct:0,answered:false,order:[...Array(list.length).keys()].sort(()=>Math.random()-.5)};
-  renderExam();
-}
-function renderExam() {
-  const list=MONTHS[state.month-1];
-  if(!state.exam) {
-    return `<div class="card exam"><h2>Monatsprüfung – ${monthName(state.month)}</h2>
-      <p>Die Prüfung umfasst alle <b>${list.length}</b> Vokabeln dieses Monats.</p>
-      <p class="muted">Prüfungsmodus ist ab dem 16. aktiv.</p>
-      <button onclick="startExam()">Prüfung starten</button></div>`;
-  }
-  const x=state.exam;
-  if(x.i>=list.length) {
-    const score=Math.round(x.correct/list.length*100);
-    state.results[state.month]={score,correct:x.correct,total:list.length,date:new Date().toLocaleDateString("de-DE")};
-    save(); state.exam=null;
-    return `<div class="card"><h2>Prüfung abgeschlossen</h2><div class="stat">${score}%</div>
-      <p>${x.correct} von ${list.length} richtig.</p>
-      <div class="notice">Das Ergebnis wurde lokal für diesen Demo-Benutzer gespeichert.</div>
-      <button onclick="state.tab='home';render()">Zur Übersicht</button></div>`;
-  }
-  const idx=x.order[x.i], q=list[idx];
-  const choices=[q.meaning];
-  while(choices.length<4 && choices.length<list.length) {
-    const c=list[Math.floor(Math.random()*list.length)].meaning;
-    if(!choices.includes(c)) choices.push(c);
-  }
-  choices.sort(()=>Math.random()-.5);
-  return `<div class="card exam"><div class="row"><h2>Frage ${x.i+1} / ${list.length}</h2><span class="badge">Prüfung</span></div>
-    <h1>${esc(q.term)}</h1><p>Welche Bedeutung gehört dazu?</p>
-    ${choices.map(c=>`<button class="choice" onclick="answerExam(this,${JSON.stringify(c===q.meaning)},${JSON.stringify(q.meaning)})">${esc(c)}</button>`).join("")}
-  </div>`;
-}
-function answerExam(btn,correct,solution) {
-  if(state.exam.answered) return;
-  state.exam.answered=true;
-  btn.classList.add(correct?"correct":"wrong");
-  if(correct) state.exam.correct++;
-  setTimeout(()=>{state.exam.i++;state.exam.answered=false;render();},450);
-}
-
-function admin() {
-  const r=state.results[state.month];
-  return `<div class="card"><h1>Ausbilderbereich</h1>
-    <div class="notice"><b>Mainzahn Jahresplan:</b> 226 Vokabeln aus der bereitgestellten Vokabelliste, verteilt auf 12 Monatsmodule.</div>
-    <table><thead><tr><th>Monat</th><th>Vokabeln</th><th>Status</th><th>Demo-Ergebnis</th></tr></thead>
-    <tbody>${MONTHS.map((x,i)=>`<tr><td>${i+1} – ${monthName(i+1)}</td><td>${x.length}</td><td>${i+1===state.month?(mode()==="exam"?"Prüfung":"Lernen"):"geplant"}</td><td>${state.results[i+1]?state.results[i+1].score+"%":"–"}</td></tr>`).join("")}</tbody></table>
-    <br><p class="muted small">In einer echten Serverversion werden hier mehrere Azubis, Ergebnisse, Bestehensgrenzen, Prüfungsversuche und Exporte zentral gespeichert.</p>
-  </div>`;
-}
-
-function render() {
-  if(!state.user) return login();
-  let c=state.tab==="home"?home():state.tab==="learn"?learnView():state.tab==="exam"?renderExam():admin();
-  shell(c);
-}
-render();
 </script>
 </body>
 </html>
