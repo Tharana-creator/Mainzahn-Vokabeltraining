@@ -2297,8 +2297,44 @@ function renderExam(){const m=examMonth(),list=MONTHS[m-1];if(!examOpen())return
 function bind(){document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{state.tab=b.dataset.go;render()});if(state.tab==='learn'){const p=document.getElementById('prev'),n=document.getElementById('next');if(p)p.onclick=()=>{state.learn=Math.max(0,state.learn-1);render()};if(n)n.onclick=()=>{state.learn=(state.learn+1)%MONTHS[exerciseMonth()-1].length;render()}}if(state.tab==='exam'){const s=document.getElementById('startExam');if(s)s.onclick=()=>{state.exam={i:0,correct:0,choices:null};render()};document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{const list=MONTHS[examMonth()-1],correct=tidy(list[state.exam.i].meaning),picked=state.exam.choices[Number(b.dataset.answer)];if(picked===correct)state.exam.correct++;state.exam.i++;state.exam.choices=null;if(state.exam.i>=list.length){const score=Math.round(state.exam.correct/list.length*100);const key=`mz_result_${state.user.id}_${examMonth()}_${now().getFullYear()}`;localStorage.setItem(key,JSON.stringify({score,correct:state.exam.correct,total:list.length,date:new Date().toISOString()}))}render()})}}
 function render(){let c=state.tab==='home'?home():state.tab==='learn'?learnView():renderExam();shell(c);bind()}
 async function boot(){const {data,error}=await sb.auth.getSession();if(error)throw error;if(!data.session)return loginScreen();state.user=data.session.user;const r=await sb.from('profiles').select('*').eq('id',state.user.id).maybeSingle();if(r.error)throw r.error;if(!r.data)return fail('Benutzerprofil fehlt','Für diesen Benutzer fehlt ein Eintrag in profiles.');state.profile=r.data;render()}
-try{const c=window.MAINZAHN_CONFIG;if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw new Error('config.js ist leer oder wird nicht gefunden.');const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');sb=createClient(c.supabaseUrl,c.supabaseAnonKey);await boot()}catch(e){fail('Mainzahn konnte nicht gestartet werden',e.message)}
+try {
+  const c = window.MAINZAHN_CONFIG;
 
+  if (!c?.supabaseUrl || !c?.supabaseAnonKey) {
+    throw new Error("config.js ist leer oder wird nicht gefunden.");
+  }
+
+  const { createClient } = await import(
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+  );
+
+  sb = createClient(c.supabaseUrl, c.supabaseAnonKey);
+
+  const { data, error } = await sb.auth.getSession();
+
+  if (error) throw error;
+
+  if (data.session) {
+    state.user = data.session.user;
+
+    const { data: profile, error: profileError } = await sb
+      .from("profiles")
+      .select("*")
+      .eq("id", state.user.id)
+      .single();
+
+    if (profileError) throw profileError;
+
+    state.profile = profile;
+    render();
+  } else {
+    loginScreen();
+  }
+
+} catch (e) {
+  console.error(e);
+  fail("Mainzahn konnte nicht gestartet werden", e.message);
+}
 </script>
 </body>
 </html>
