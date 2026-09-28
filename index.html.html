@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mainzahn</title><style>
+body{font-family:system-ui;margin:0;background:#f4f7f9;color:#17212b}header{background:#0f6879;color:#fff;padding:18px}main,.wrap{max-width:950px;margin:auto}.wrap{display:flex;justify-content:space-between;align-items:center}main{padding:22px 16px}.card{background:#fff;border:1px solid #dbe4ea;border-radius:16px;padding:20px;margin:15px 0}.login{max-width:430px;margin:65px auto}input,button{font:inherit;padding:11px;border-radius:9px}input{width:100%;box-sizing:border-box;border:1px solid #ccd7de;margin:6px 0 12px}button{border:0;background:#0f6879;color:#fff;font-weight:700;cursor:pointer}.error{background:#fff0ee;color:#a1261d;padding:13px;border-radius:10px;white-space:pre-wrap}.muted{color:#64748b}.hidden{display:none}
+</style><script src="config.js"></script></head>
+<body><div id="app"><main><div class="card">Mainzahn wird geladen …</div></main></div>
+<script type="module">
+const app=document.getElementById("app");
+const clean=x=>String(x||"").replace(/[<>&]/g,"");
+function fail(t,d=""){app.innerHTML=`<main><div class="card"><h1>Mainzahn</h1><div class="error"><b>${clean(t)}</b>${d?`<br><br>${clean(d)}`:""}</div></div></main>`}
+window.addEventListener("error",e=>fail("JavaScript-Fehler",e.message));
+window.addEventListener("unhandledrejection",e=>fail("Verbindungsfehler",e.reason?.message||e.reason));
+try{
+ const c=window.MAINZAHN_CONFIG;
+ if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw new Error("config.js ist leer oder wird nicht gefunden.");
+ if(!c.supabaseUrl.startsWith("https://"))throw new Error("Die Supabase-URL muss mit https:// beginnen.");
+ const {createClient}=await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm");
+ const sb=createClient(c.supabaseUrl,c.supabaseAnonKey);
+ async function loginScreen(){
+   app.innerHTML=`<main><div class="card login"><h1>Mainzahn</h1><p class="muted">Azubi Vokabeltrainer</p><h2>Anmelden</h2><input id="email" type="email" placeholder="E-Mail"><input id="password" type="password" placeholder="Passwort"><button id="login">Anmelden</button><div id="err" class="error hidden"></div></div></main>`;
+   document.getElementById("login").onclick=async()=>{
+     const {error}=await sb.auth.signInWithPassword({email:document.getElementById("email").value.trim(),password:document.getElementById("password").value});
+     if(error){const x=document.getElementById("err");x.textContent=error.message;x.classList.remove("hidden")}else boot();
+   };
+ }
+ async function boot(){
+   const {data,error}=await sb.auth.getSession(); if(error)throw error;
+   if(!data.session)return loginScreen();
+   const u=data.session.user;
+   const r=await sb.from("profiles").select("*").eq("id",u.id).maybeSingle();
+   if(r.error)throw r.error;
+   if(!r.data){fail("Benutzerprofil fehlt","Der Login funktioniert, aber für diesen Benutzer fehlt noch ein Eintrag in der Tabelle profiles.");return}
+   const d=new Date(),day=d.getDate(),m=d.getMonth()+1,lm=day>=21?(m%12)+1:m;
+   const names=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+   app.innerHTML=`<header><div class="wrap"><b style="font-size:24px">Mainzahn</b><button id="out">Abmelden</button></div></header><main><div class="card"><h1>Willkommen, ${clean(r.data.full_name)}</h1><p><b>Lernpaket:</b> ${names[lm-1]}</p><p>Ab dem 21. wird das Lernpaket des Folgemonats freigeschaltet.</p><p><b>Prüfung ${names[m-1]}:</b> ${day>=16?"freigeschaltet":"ab dem 16. freigeschaltet"}.</p><p class="muted">Rolle: ${clean(r.data.role)}</p></div></main>`;
+   document.getElementById("out").onclick=async()=>{await sb.auth.signOut();location.reload()};
+ }
+ await boot();
+}catch(e){fail("Mainzahn konnte nicht gestartet werden",e.message)}
+</script></body></html>
