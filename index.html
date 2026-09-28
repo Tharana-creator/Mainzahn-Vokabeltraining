@@ -23,7 +23,7 @@ input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;ma
 .choice.correct{background:#e8f7ef;border-color:#7ac79f} .choice.wrong{background:#fff0ee;border-color:#e49b91}
 .small{font-size:12px} .hidden{display:none!important} table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
 .login{max-width:430px;margin:70px auto} .logo{font-size:42px;font-weight:900;color:var(--brand);margin-bottom:5px}
-.notice{padding:13px;border-radius:12px;background:#eef7fa;margin:12px 0} .locked{opacity:.55}
+.notice{padding:13px;border-radius:12px;background:#eef7fa;margin:12px 0} .locked{opacity:.55} .error-item{padding:12px 0;border-bottom:1px solid var(--line)} .error-item:last-child{border-bottom:0} .score-good{color:var(--ok);font-weight:800} .score-bad{color:var(--danger);font-weight:800}
 @media(max-width:600px){header{padding:14px} main{margin:16px auto} .brand{font-size:20px}}
 </style>
 <script src="config.js"></script></head>
@@ -2274,7 +2274,7 @@ const MONTHS = [
 ];
 const TOTAL = 277;
 const app=document.getElementById("app");
-const state={user:null,profile:null,tab:"home",learn:0,exam:null,results:{}};
+const state={user:null,profile:null,tab:"home",learn:0,exam:null,trainerResults:[],trainerLoading:false};
 const names=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 const tidy=s=>String(s??"").replace(/\s*\n\s*/g," ").replace(/\s{2,}/g," ").trim();
@@ -2282,59 +2282,139 @@ const now=()=>new Date();
 const examMonth=()=>now().getMonth()+1;
 const exerciseMonth=()=>{const d=now(),m=d.getMonth()+1;return d.getDate()>=21?(m%12)+1:m};
 const examOpen=()=>now().getDate()>=16;
-const monthName=m=>names[m-1];
+const monthName=m=>names[m-1]||`Monat ${m}`;
+const isTrainer=()=>String(state.profile?.role||"").toLowerCase()==="ausbilder";
 function fail(t,d=""){app.innerHTML=`<main><div class="card"><h1>Mainzahn</h1><div class="error"><b>${esc(t)}</b>${d?`<br><br>${esc(d)}`:""}</div></div></main>`}
 let sb;
+
 async function loginScreen(){
  app.innerHTML=`<main><div class="card login"><div class="logo">Mainzahn</div><p class="muted">Azubi Vokabeltrainer</p><h2>Anmelden</h2><input id="email" type="email" placeholder="E-Mail"><input id="password" type="password" placeholder="Passwort"><button id="login">Anmelden</button><div id="err" class="error hidden"></div></div></main>`;
  document.getElementById("login").onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:email.value.trim(),password:password.value});if(error){err.textContent=error.message;err.classList.remove("hidden")}else await boot()};
 }
-function shell(content){app.innerHTML=`<header><div class="top"><div><div class="brand">Mainzahn</div><div class="sub">Azubi Vokabeltrainer</div></div><button id="out" class="secondary">Abmelden</button></div></header><main><div class="tabs"><button class="${state.tab==='home'?'active':''}" data-tab="home">Übersicht</button><button class="${state.tab==='learn'?'active':''}" data-tab="learn">Übung</button><button class="${state.tab==='exam'?'active':''}" data-tab="exam">Prüfung</button></div>${content}</main>`;document.getElementById('out').onclick=async()=>{await sb.auth.signOut();location.reload()};document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;state.exam=null;render()})}
-function home(){const em=exerciseMonth(),xm=examMonth();return `<div class="card"><div class="row"><div><h1>Willkommen, ${esc(state.profile.full_name)}</h1><p class="muted">Rolle: ${esc(state.profile.role)}</p></div><span class="badge">${examOpen()?"Prüfung freigeschaltet":"Übungsphase"}</span></div></div><div class="grid"><div class="card learn"><h2>Übung – ${monthName(em)}</h2><div class="stat">${MONTHS[em-1].length}</div><div class="muted">Vokabeln</div><br><button data-go="learn">Übung starten</button></div><div class="card exam ${examOpen()?'':'locked'}"><h2>Prüfung – ${monthName(xm)}</h2><div class="stat">${examOpen()?MONTHS[xm-1].length:'–'}</div><div class="muted">${examOpen()?'Vokabeln':'ab dem 16. freigeschaltet'}</div><br><button data-go="exam" ${examOpen()?'':'disabled'}>Prüfung starten</button></div></div><div class="notice">Ab dem <b>21. des Vormonats</b> beginnt die Übungsphase für den Folgemonat. Die Prüfung des aktuellen Monats wird am <b>16.</b> freigeschaltet.</div>`}
-function learnView(){const m=exerciseMonth(),list=MONTHS[m-1],i=Math.min(state.learn,list.length-1),v=list[i];return `<div class="card"><div class="row"><h2>Übung – ${monthName(m)}</h2><span>${i+1} / ${list.length}</span></div><div class="progress"><div class="bar" style="width:${((i+1)/list.length)*100}%"></div></div><br><h3>${esc(tidy(v.term))}</h3><p style="font-size:20px;line-height:1.55">${esc(tidy(v.meaning))}</p>${v.practice?`<p><b>Praxis:</b> ${esc(tidy(v.practice))}</p>`:''}${v.prep?`<p><b>Aufbereitung:</b> ${esc(tidy(v.prep))}</p>`:''}<div class="row"><button id="prev" class="secondary">Zurück</button><button id="next">Weiter</button></div></div>`}
-function makeChoices(list,i){const correct=tidy(list[i].meaning);let pool=list.map(x=>tidy(x.meaning)).filter(x=>x&&x!==correct);pool.sort(()=>Math.random()-.5);return [correct,...pool.slice(0,3)].sort(()=>Math.random()-.5)}
-function renderExam(){const m=examMonth(),list=MONTHS[m-1];if(!examOpen())return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung wird am 16. des Monats freigeschaltet.</p></div>`;if(!state.exam)return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung umfasst <b>${list.length}</b> Vokabeln.</p><p class="muted">Nach dem Start werden die Antworten bewertet.</p><button id="startExam">Prüfung starten</button></div>`;const x=state.exam;if(x.i>=list.length){const score=Math.round(x.correct/list.length*100);return `<div class="card"><h2>Prüfung abgeschlossen</h2><div class="stat">${score}%</div><p>${x.correct} von ${list.length} richtig.</p><div class="notice">Das Ergebnis wird deinem angemeldeten Benutzer zugeordnet und in diesem Browser gesichert.</div></div>`}const v=list[x.i];if(!x.choices)x.choices=makeChoices(list,x.i);return `<div class="card exam"><div class="row"><h2>Frage ${x.i+1} / ${list.length}</h2><span class="badge">Prüfung</span></div><div class="progress"><div class="bar" style="width:${((x.i+1)/list.length)*100}%"></div></div><br><h3>${esc(tidy(v.term))}</h3><p>Welche Bedeutung ist richtig?</p>${x.choices.map((c,j)=>`<button class="choice" data-answer="${j}">${esc(c)}</button>`).join('')}</div>`}
-function bind(){document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{state.tab=b.dataset.go;render()});if(state.tab==='learn'){const p=document.getElementById('prev'),n=document.getElementById('next');if(p)p.onclick=()=>{state.learn=Math.max(0,state.learn-1);render()};if(n)n.onclick=()=>{state.learn=(state.learn+1)%MONTHS[exerciseMonth()-1].length;render()}}if(state.tab==='exam'){const s=document.getElementById('startExam');if(s)s.onclick=()=>{state.exam={i:0,correct:0,choices:null};render()};document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{const list=MONTHS[examMonth()-1],correct=tidy(list[state.exam.i].meaning),picked=state.exam.choices[Number(b.dataset.answer)];if(picked===correct)state.exam.correct++;state.exam.i++;state.exam.choices=null;if(state.exam.i>=list.length){const score=Math.round(state.exam.correct/list.length*100);const key=`mz_result_${state.user.id}_${examMonth()}_${now().getFullYear()}`;localStorage.setItem(key,JSON.stringify({score,correct:state.exam.correct,total:list.length,date:new Date().toISOString()}))}render()})}}
-function render(){let c=state.tab==='home'?home():state.tab==='learn'?learnView():renderExam();shell(c);bind()}
-async function boot(){const {data,error}=await sb.auth.getSession();if(error)throw error;if(!data.session)return loginScreen();state.user=data.session.user;const r=await sb.from('profiles').select('*').eq('id',state.user.id).maybeSingle();if(r.error)throw r.error;if(!r.data)return fail('Benutzerprofil fehlt','Für diesen Benutzer fehlt ein Eintrag in profiles.');state.profile=r.data;render()}
-try {
-  const c = window.MAINZAHN_CONFIG;
 
-  if (!c?.supabaseUrl || !c?.supabaseAnonKey) {
-    throw new Error("config.js ist leer oder wird nicht gefunden.");
-  }
-
-  const { createClient } = await import(
-    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
-  );
-
-  sb = createClient(c.supabaseUrl, c.supabaseAnonKey);
-
-  const { data, error } = await sb.auth.getSession();
-
-  if (error) throw error;
-
-  if (data.session) {
-    state.user = data.session.user;
-
-    const { data: profile, error: profileError } = await sb
-      .from("profiles")
-      .select("*")
-      .eq("id", state.user.id)
-      .single();
-
-    if (profileError) throw profileError;
-
-    state.profile = profile;
-    render();
-  } else {
-    loginScreen();
-  }
-
-} catch (e) {
-  console.error(e);
-  fail("Mainzahn konnte nicht gestartet werden", e.message);
+function shell(content){
+ const tabs=isTrainer()
+   ? `<button class="${state.tab==='home'?'active':''}" data-tab="home">Übersicht</button><button class="${state.tab==='results'?'active':''}" data-tab="results">Ergebnisse</button>`
+   : `<button class="${state.tab==='home'?'active':''}" data-tab="home">Übersicht</button><button class="${state.tab==='learn'?'active':''}" data-tab="learn">Übung</button><button class="${state.tab==='exam'?'active':''}" data-tab="exam">Prüfung</button>`;
+ app.innerHTML=`<header><div class="top"><div><div class="brand">Mainzahn</div><div class="sub">${isTrainer()?'Ausbilderbereich':'Azubi Vokabeltrainer'}</div></div><button id="out" class="secondary">Abmelden</button></div></header><main><div class="tabs">${tabs}</div>${content}</main>`;
+ document.getElementById('out').onclick=async()=>{await sb.auth.signOut();location.reload()};
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=async()=>{state.tab=b.dataset.tab;state.exam=null;if(state.tab==="results")await loadTrainerResults();render()});
 }
+
+function home(){
+ if(isTrainer()){
+   return `<div class="card"><h1>Willkommen, ${esc(state.profile.full_name)}</h1><p class="muted">Rolle: Ausbilder</p><div class="notice">Hier siehst du die Prüfungsergebnisse der Azubis – einschließlich der falsch beantworteten Vokabeln.</div><button data-go="results">Ergebnisse ansehen</button></div>`;
+ }
+ const em=exerciseMonth(),xm=examMonth();
+ return `<div class="card"><div class="row"><div><h1>Willkommen, ${esc(state.profile.full_name)}</h1><p class="muted">Rolle: ${esc(state.profile.role)}</p></div><span class="badge">${examOpen()?"Prüfung freigeschaltet":"Übungsphase"}</span></div></div><div class="grid"><div class="card learn"><h2>Übung – ${monthName(em)}</h2><div class="stat">${MONTHS[em-1].length}</div><div class="muted">Vokabeln</div><br><button data-go="learn">Übung starten</button></div><div class="card exam ${examOpen()?'':'locked'}"><h2>Prüfung – ${monthName(xm)}</h2><div class="stat">${examOpen()?MONTHS[xm-1].length:'–'}</div><div class="muted">${examOpen()?'Vokabeln':'ab dem 16. freigeschaltet'}</div><br><button data-go="exam" ${examOpen()?'':'disabled'}>Prüfung starten</button></div></div><div class="notice">Ab dem <b>21. des Vormonats</b> beginnt die Übungsphase für den Folgemonat. Die Prüfung des aktuellen Monats wird am <b>16.</b> freigeschaltet.</div>`;
+}
+
+function learnView(){
+ const m=exerciseMonth(),list=MONTHS[m-1],i=Math.min(state.learn,list.length-1),v=list[i];
+ return `<div class="card"><div class="row"><h2>Übung – ${monthName(m)}</h2><span>${i+1} / ${list.length}</span></div><div class="progress"><div class="bar" style="width:${((i+1)/list.length)*100}%"></div></div><br><h3>${esc(tidy(v.term))}</h3><p style="font-size:20px;line-height:1.55">${esc(tidy(v.meaning))}</p>${v.practice?`<p><b>Praxis:</b> ${esc(tidy(v.practice))}</p>`:''}${v.prep?`<p><b>Aufbereitung:</b> ${esc(tidy(v.prep))}</p>`:''}<div class="row"><button id="prev" class="secondary">Zurück</button><button id="next">Weiter</button></div></div>`;
+}
+
+function makeChoices(list,i){
+ const correct=tidy(list[i].meaning);
+ let pool=list.map(x=>tidy(x.meaning)).filter(x=>x&&x!==correct);
+ pool.sort(()=>Math.random()-.5);
+ return [correct,...pool.slice(0,3)].sort(()=>Math.random()-.5);
+}
+
+async function saveExamResult(x,list){
+ const score=Math.round(x.correct/list.length*100);
+ const payload={
+   user_id:state.user.id,
+   month:examMonth(),
+   year:now().getFullYear(),
+   score,
+   correct_count:x.correct,
+   total_count:list.length,
+   mistakes:x.mistakes,
+   completed_at:new Date().toISOString()
+ };
+ const {error}=await sb.from("exam_results").insert(payload);
+ if(error){console.error(error);x.saveError=error.message}else{x.saved=true}
+}
+
+function mistakeList(items){
+ if(!items?.length)return `<div class="notice">Keine Fehler – alles richtig! 🎉</div>`;
+ return `<div class="card"><h3>Falsch beantwortete Vokabeln (${items.length})</h3>${items.map(e=>`<div class="error-item"><b>${esc(tidy(e.term))}</b><br><span class="muted">Deine Antwort:</span> ${esc(tidy(e.picked))}<br><span class="muted">Richtig:</span> <b>${esc(tidy(e.correct))}</b></div>`).join("")}</div>`;
+}
+
+function renderExam(){
+ const m=examMonth(),list=MONTHS[m-1];
+ if(!examOpen())return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung wird am 16. des Monats freigeschaltet.</p></div>`;
+ if(!state.exam)return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung umfasst <b>${list.length}</b> Vokabeln.</p><p class="muted">Nach dem Start werden die Antworten bewertet.</p><button id="startExam">Prüfung starten</button></div>`;
+ const x=state.exam;
+ if(x.i>=list.length){
+   const score=Math.round(x.correct/list.length*100);
+   return `<div class="card"><h2>Prüfung abgeschlossen</h2><div class="stat">${score}%</div><p>${x.correct} von ${list.length} richtig.</p>${x.saveError?`<div class="notice">Ergebnis konnte nicht in Supabase gespeichert werden: ${esc(x.saveError)}</div>`:`<div class="notice">${x.saved?"Ergebnis wurde gespeichert.":"Ergebnis wird gespeichert …"}</div>`}</div>${mistakeList(x.mistakes)}`;
+ }
+ const v=list[x.i];
+ if(!x.choices)x.choices=makeChoices(list,x.i);
+ return `<div class="card exam"><div class="row"><h2>Frage ${x.i+1} / ${list.length}</h2><span class="badge">Prüfung</span></div><div class="progress"><div class="bar" style="width:${((x.i+1)/list.length)*100}%"></div></div><br><h3>${esc(tidy(v.term))}</h3><p>Welche Bedeutung ist richtig?</p>${x.choices.map((c,j)=>`<button class="choice" data-answer="${j}">${esc(tidy(c))}</button>`).join('')}</div>`;
+}
+
+async function loadTrainerResults(){
+ state.trainerLoading=true;
+ const {data,error}=await sb.from("exam_results").select("id,user_id,month,year,score,correct_count,total_count,mistakes,completed_at,profiles!exam_results_user_id_fkey(full_name)").order("completed_at",{ascending:false});
+ state.trainerLoading=false;
+ if(error){state.trainerResults={error:error.message};return}
+ state.trainerResults=data||[];
+}
+
+function trainerResultsView(){
+ if(state.trainerLoading)return `<div class="card"><h2>Ergebnisse</h2><p>Lade Ergebnisse …</p></div>`;
+ if(state.trainerResults?.error)return `<div class="card"><h2>Ergebnisse</h2><div class="notice">Fehler beim Laden: ${esc(state.trainerResults.error)}</div></div>`;
+ if(!state.trainerResults.length)return `<div class="card"><h2>Ergebnisse</h2><p>Noch keine Prüfungsergebnisse vorhanden.</p></div>`;
+ return `<div class="card"><h2>Prüfungsergebnisse</h2><div style="overflow-x:auto"><table><thead><tr><th>Azubi</th><th>Prüfung</th><th>Ergebnis</th><th>Datum</th></tr></thead><tbody>${state.trainerResults.map((r,i)=>`<tr><td>${esc(r.profiles?.full_name||"Unbekannt")}</td><td>${esc(monthName(r.month))} ${esc(r.year)}</td><td class="${r.score>=80?'score-good':'score-bad'}">${esc(r.score)}% (${esc(r.correct_count)}/${esc(r.total_count)})</td><td>${esc(new Date(r.completed_at).toLocaleDateString("de-DE"))}</td></tr><tr><td colspan="4">${r.mistakes?.length?`<details><summary><b>${r.mistakes.length} Fehler anzeigen</b></summary>${r.mistakes.map(e=>`<div class="error-item"><b>${esc(tidy(e.term))}</b><br><span class="muted">Antwort des Azubis:</span> ${esc(tidy(e.picked))}<br><span class="muted">Richtig:</span> <b>${esc(tidy(e.correct))}</b></div>`).join("")}</details>`:`<span class="badge">Keine Fehler</span>`}</td></tr>`).join("")}</tbody></table></div></div>`;
+}
+
+function bind(){
+ document.querySelectorAll('[data-go]').forEach(b=>b.onclick=async()=>{state.tab=b.dataset.go;if(state.tab==="results")await loadTrainerResults();render()});
+ if(state.tab==='learn'){
+   const p=document.getElementById('prev'),n=document.getElementById('next');
+   if(p)p.onclick=()=>{state.learn=Math.max(0,state.learn-1);render()};
+   if(n)n.onclick=()=>{state.learn=(state.learn+1)%MONTHS[exerciseMonth()-1].length;render()};
+ }
+ if(state.tab==='exam'){
+   const s=document.getElementById('startExam');
+   if(s)s.onclick=()=>{state.exam={i:0,correct:0,choices:null,mistakes:[],saved:false,saveStarted:false};render()};
+   document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=async()=>{
+     const list=MONTHS[examMonth()-1],v=list[state.exam.i],correct=tidy(v.meaning),picked=tidy(state.exam.choices[Number(b.dataset.answer)]);
+     if(picked===correct)state.exam.correct++;
+     else state.exam.mistakes.push({term:tidy(v.term),picked,correct});
+     state.exam.i++;state.exam.choices=null;
+     if(state.exam.i>=list.length&&!state.exam.saveStarted){
+       state.exam.saveStarted=true;
+       render();
+       await saveExamResult(state.exam,list);
+     }
+     render();
+   });
+ }
+}
+
+function render(){
+ if(isTrainer()&&state.tab!=="home"&&state.tab!=="results")state.tab="home";
+ let c=isTrainer()?(state.tab==="results"?trainerResultsView():home()):(state.tab==='home'?home():state.tab==='learn'?learnView():renderExam());
+ shell(c);bind();
+}
+
+async function boot(){
+ const {data,error}=await sb.auth.getSession();
+ if(error)throw error;
+ if(!data.session)return loginScreen();
+ state.user=data.session.user;
+ const r=await sb.from('profiles').select('*').eq('id',state.user.id).maybeSingle();
+ if(r.error)throw r.error;
+ if(!r.data)return fail('Benutzerprofil fehlt','Für diesen Benutzer fehlt ein Eintrag in profiles.');
+ state.profile=r.data;
+ render();
+}
+try{const c=window.MAINZAHN_CONFIG;if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw new Error('config.js ist leer oder wird nicht gefunden.');const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');sb=createClient(c.supabaseUrl,c.supabaseAnonKey);await boot()}catch(e){fail('Mainzahn konnte nicht gestartet werden',e.message)}
+
 </script>
 </body>
 </html>
