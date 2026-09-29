@@ -2278,6 +2278,20 @@ const state={user:null,profile:null,tab:"home",learn:0,exam:null,trainerResults:
 const names=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 const tidy=s=>String(s??"").replace(/\s*\n\s*/g," ").replace(/\s{2,}/g," ").trim();
+const compactText=s=>tidy(s).toLocaleLowerCase("de-DE").replace(/[^a-z0-9äöüß]/g,"");
+function cleanStoredText(s){
+  const t=tidy(s);
+  const key=compactText(t);
+  if(!key) return t;
+  for(const list of MONTHS){
+    for(const v of list){
+      for(const candidate of [v.term,v.meaning,v.practice,v.prep]){
+        if(candidate && compactText(candidate)===key) return tidy(candidate);
+      }
+    }
+  }
+  return t;
+}
 const now=()=>new Date();
 const examMonth=()=>now().getMonth()+1;
 const exerciseMonth=()=>{const d=now(),m=d.getMonth()+1;return d.getDate()>=21?(m%12)+1:m};
@@ -2339,7 +2353,7 @@ async function saveExamResult(x,list){
 
 function mistakeList(items){
  if(!items?.length)return `<div class="notice">Keine Fehler – alles richtig! 🎉</div>`;
- return `<div class="card"><h3>Falsch beantwortete Vokabeln (${items.length})</h3>${items.map(e=>`<div class="error-item"><b>${esc(tidy(e.term))}</b><br><span class="muted">Deine Antwort:</span> ${esc(tidy(e.picked))}<br><span class="muted">Richtig:</span> <b>${esc(tidy(e.correct))}</b></div>`).join("")}</div>`;
+ return `<div class="card"><h3>Falsch beantwortete Vokabeln (${items.length})</h3>${items.map(e=>`<div class="error-item"><b>${esc(cleanStoredText(e.term))}</b><br><span class="muted">Deine Antwort:</span> ${esc(cleanStoredText(e.picked))}<br><span class="muted">Richtig:</span> <b>${esc(cleanStoredText(e.correct))}</b></div>`).join("")}</div>`;
 }
 
 function renderExam(){
@@ -2368,7 +2382,7 @@ function trainerResultsView(){
  if(state.trainerLoading)return `<div class="card"><h2>Ergebnisse</h2><p>Lade Ergebnisse …</p></div>`;
  if(state.trainerResults?.error)return `<div class="card"><h2>Ergebnisse</h2><div class="notice">Fehler beim Laden: ${esc(state.trainerResults.error)}</div></div>`;
  if(!state.trainerResults.length)return `<div class="card"><h2>Ergebnisse</h2><p>Noch keine Prüfungsergebnisse vorhanden.</p></div>`;
- return `<div class="card"><h2>Prüfungsergebnisse</h2><div style="overflow-x:auto"><table><thead><tr><th>Azubi</th><th>Prüfung</th><th>Ergebnis</th><th>Datum</th></tr></thead><tbody>${state.trainerResults.map((r,i)=>`<tr><td>${esc(r.profiles?.full_name||"Unbekannt")}</td><td>${esc(monthName(r.month))} ${esc(r.year)}</td><td class="${r.score>=80?'score-good':'score-bad'}">${esc(r.score)}% (${esc(r.correct_count)}/${esc(r.total_count)})</td><td>${esc(new Date(r.completed_at).toLocaleDateString("de-DE"))}</td></tr><tr><td colspan="4">${r.mistakes?.length?`<details><summary><b>${r.mistakes.length} Fehler anzeigen</b></summary>${r.mistakes.map(e=>`<div class="error-item"><b>${esc(tidy(e.term))}</b><br><span class="muted">Antwort des Azubis:</span> ${esc(tidy(e.picked))}<br><span class="muted">Richtig:</span> <b>${esc(tidy(e.correct))}</b></div>`).join("")}</details>`:`<span class="badge">Keine Fehler</span>`}</td></tr>`).join("")}</tbody></table></div></div>`;
+ return `<div class="card"><h2>Prüfungsergebnisse</h2><div style="overflow-x:auto"><table><thead><tr><th>Azubi</th><th>Prüfung</th><th>Ergebnis</th><th>Datum</th></tr></thead><tbody>${state.trainerResults.map((r,i)=>`<tr><td>${esc(r.profiles?.full_name||"Unbekannt")}</td><td>${esc(monthName(r.month))} ${esc(r.year)}</td><td class="${r.score>=80?'score-good':'score-bad'}">${esc(r.score)}% (${esc(r.correct_count)}/${esc(r.total_count)})</td><td>${esc(new Date(r.completed_at).toLocaleDateString("de-DE"))}</td></tr><tr><td colspan="4">${r.mistakes?.length?`<details><summary><b>${r.mistakes.length} Fehler anzeigen</b></summary>${r.mistakes.map(e=>`<div class="error-item"><b>${esc(cleanStoredText(e.term))}</b><br><span class="muted">Antwort des Azubis:</span> ${esc(cleanStoredText(e.picked))}<br><span class="muted">Richtig:</span> <b>${esc(cleanStoredText(e.correct))}</b></div>`).join("")}</details>`:`<span class="badge">Keine Fehler</span>`}</td></tr>`).join("")}</tbody></table></div></div>`;
 }
 
 function bind(){
