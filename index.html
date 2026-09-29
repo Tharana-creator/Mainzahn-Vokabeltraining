@@ -2281,7 +2281,46 @@ const tidy=s=>String(s??"").replace(/\s*\n\s*/g," ").replace(/\s{2,}/g," ").trim
 // PDF-Zeilenumbrüche haben teilweise Wörter mitten im Wort getrennt.
 // Diese Funktion entfernt die sichtbaren OCR/PDF-Lücken auch bei alten Supabase-Ergebnissen.
 const repairWordBreaks=s=>{
-  let t=tidy(s);
+  // Erst die ORIGINALEN Zeilenumbrüche behandeln, bevor tidy() sie in Leerzeichen umwandelt.
+  // In der importierten PDF wurden lange Wörter häufig mitten im Wort umgebrochen.
+  let raw=String(s??"");
+  raw=raw.replace(/([A-Za-zÄÖÜäöüß]{5,})\n([A-Za-zÄÖÜäöüß]{1,5})(?=\b)/g,"$1$2");
+  // Häufige längere PDF-Worttrennungen, bei denen beide Teile > 5 Zeichen lang sind.
+  const rawFixes={
+    "Speichelpr\noduktion":"Speichelproduktion",
+    "benachbar\nter":"benachbarter",
+    "verschiede\nnen":"verschiedenen",
+    "beschichte\nten":"beschichteten",
+    "unbeschic\nhteten":"unbeschichteten",
+    "ansteigend\ne":"ansteigende",
+    "Zahnzwisc\nhenräume":"Zahnzwischenräume",
+    "Brückengli\nedern":"Brückengliedern",
+    "provisorisc\nher":"provisorischer",
+    "vollkermisc\nhen":"vollkeramischen",
+    "Instrument\narium":"Instrumentarium",
+    "chirurgisch\ne":"chirurgische",
+    "maschinell\nen":"maschinellen",
+    "Aufbereitu\nng":"Aufbereitung",
+    "integrierte\nm":"integriertem",
+    "Vollkerami\nsche":"Vollkeramische",
+    "Verblendsc\nhale":"Verblendschale",
+    "Wurzelbeh\nandlungen":"Wurzelbehandlungen",
+    "Nahtmateri\nal":"Nahtmaterial",
+    "Aufwachst\nechnik":"Aufwachstechnik",
+    "Simulation\neiner":"Simulation einer",
+    "prothetisch\nen":"prothetischen",
+    "Zahnfehlst\ellungen":"Zahnfehlstellungen",
+    "Ausräume\nn":"Ausräumen",
+    "Wurzelspit\nze":"Wurzelspitze",
+    "beginnend\nen":"beginnenden",
+    "Mundtrock\nenheit":"Mundtrockenheit",
+    "Medikame\nnte":"Medikamente",
+    "Zystenbalg\ns":"Zystenbalgs",
+    "benachbar\nter":"benachbarter",
+    "Körperhöhl\nen":"Körperhöhlen"
+  };
+  for(const [a,b] of Object.entries(rawFixes)) raw=raw.split(a).join(b);
+  let t=tidy(raw);
   const fixes={
     "Teilprothes e":"Teilprothese","Geschiebe n":"Geschieben","abgestorb enes":"abgestorbenes",
     "mangelnde r":"mangelnder","Blutversor gung":"Blutversorgung","Schmerzm ittel":"Schmerzmittel",
