@@ -2277,7 +2277,56 @@ const app=document.getElementById("app");
 const state={user:null,profile:null,tab:"home",learn:0,exam:null,trainerResults:[],trainerLoading:false};
 const names=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
-const tidy=s=>String(s??"").replace(/\s*\n\s*/g," ").replace(/\s{2,}/g," ").trim();
+const tidy=s=>{
+  let t=String(s??"").replace(/\r/g,"");
+  const fixes=[
+    ["Gegenzah\\nn","Gegenzahn"],["Kaufläche\\nn","Kauflächen"],
+    ["Implantats\\nystems","Implantatsystems"],["Implantatk\\nörper","Implantatkörper"],
+    ["Implantata\\nufbau","Implantataufbau"],["entsprec\\nhenden","entsprechenden"],
+    ["verschluc\\nken","verschlucken"],["Ansammlu\\nng","Ansammlung"],
+    ["Abflußmög\\nlichkeit","Abflußmöglichkeit"],["Implantata\\nufbauteil","Implantataufbauteil"],
+    ["Acetylsalicysäur\\ne","Acetylsalicysäure"],["Schmerzm\\nitteln","Schmerzmitteln"],
+    ["Schmerzm\\nittel","Schmerzmittel"],["blutverdün\\nnender","blutverdünnender"],
+    ["Haftvermitt\\nler","Haftvermittler"],["Abdrucklöf\\nfel","Abdrucklöffel"],
+    ["aufgetrage\\nn","aufgetragen"],["Abdruckmi\\nttel","Abdruckmittel"],
+    ["Unterfütter\\nungsabdru\\nck","Unterfütterungsabdruck"],
+    ["Befestigun\\ng","Befestigung"],["Zahnschm\\nelz","Zahnschmelz"],
+    ["Anwendun\\ng","Anwendung"],["Schleimhä\\nute","Schleimhäute"],
+    ["Einschleif\\nen","Einschleifen"],["Kunststoffs\\nchiene","Kunststoffschiene"],
+    ["verschiede\\nne","verschiedene"],["therapeutis\\nche","therapeutische"],
+    ["insbesond\\nere","insbesondere"],["Kiefergele\\nnksbeschw\\nerden","Kiefergelenksbeschwerden"],
+    ["Eckzahnfü\\nhrung","Eckzahnführung"],["Abdruckm\\naterial","Abdruckmaterial"],
+    ["Behandlun\\ng","Behandlung"],["Behandlun\\ngsmethode","Behandlungsmethode"],
+    ["Haftfähigk\\neit","Haftfähigkeit"],["Kunstoffkle\\nbern","Kunstoffklebern"],
+    ["keramisch\\nen","keramischen"],["Oberfläche\\nn","Oberflächen"],
+    ["Backenzäh\\nne","Backenzähne"],["Schleimha\\nut","Schleimhaut"],
+    ["Auskleidun\\ng","Auskleidung"],["Körperobe\\nrflächen","Körperoberflächen"],
+    ["Mukoperiostlapp\\nen","Mukoperiostlappen"],["Aufklappu\\nng","Aufklappung"],
+    ["Kiefergele\\nnk","Kiefergelenk"],["Kaumuskul\\natur","Kaumuskulatur"],
+    ["Natriumhypochlo\\nrid","Natriumhypochlorid"],["gangränös\\ne","gangränöse"],
+    ["Wurzelkan\\näle","Wurzelkanäle"],["Schmerza\\nusschaltun\\ng","Schmerzausschaltung"],
+    ["abgestorb\\nenes","abgestorbenes"],["mangelnde\\nr","mangelnder"],
+    ["Blutversor\\ngung","Blutversorgung"],["Nichtedel\\nmetall","Nichtedelmetall"],
+    ["Schmerze\\nn","Schmerzen"],["verschloss\\nen","verschlossen"],
+    ["anzutreffe\\nn","anzutreffen"],["betreffend\\ne","betreffende"],
+    ["Bewusstse\\ninsverlust","Bewusstseinsverlust"],["Prämolare\\nn","Prämolaren"],
+    ["einbezoge\\nner","einbezogener"],["Kaukante\\nnschutz","Kaukantenschutz"],
+    ["Orthopant\\nomogram\\nm","Orthopantomogramm"],["Röntgenübersichtsauf\\nnahme","Röntgenübersichtsaufnahme"],
+    ["Wurzelkan\\nal","Wurzelkanal"],["eingebrach\\nt","eingebracht"],
+    ["Knochens\\nubstanz","Knochensubstanz"],["Vergrößer\\nung","Vergrößerung"],
+    ["Markräum\\ne","Markräume"],["vorkomme\\nnd","vorkommend"],
+    ["Durchtrenn\\nung","Durchtrennung"],["Parodontiti\\ns","Parodontitis"],
+    ["Untersuch\\nung","Untersuchung"],["interdental\\ne","interdentale"],
+    ["Zahnfleisc\\nhspitze","Zahnfleischspitze"],["Schwange\\nren","Schwangeren"],
+    ["Kinder\\nn","Kindern"],["Metallstiftc\\nhen","Metallstiftchen"],
+    ["benachbar\\nten","benachbarten"],["eingeschra\\nubt","eingeschraubt"],
+    ["Kompositf\\nüllungen","Kompositfüllungen"],["Missempfi\\nndung","Missempfindung"],
+    ["vermidert\\ne","verminderte"],["Gefühlswa\\nhrnehmun\\ng","Gefühlswahrnehmung"],
+    ["Teilp\\nroth\\nese\\nn","Teilprothesen"]
+  ];
+  for(const [a,b] of fixes)t=t.split(a).join(b);
+  return t.replace(/\s*\n\s*/g," ").replace(/\s{2,}/g," ").trim();
+};
 // PDF-Zeilenumbrüche haben teilweise Wörter mitten im Wort getrennt.
 // Diese Funktion entfernt die sichtbaren OCR/PDF-Lücken auch bei alten Supabase-Ergebnissen.
 const repairWordBreaks=s=>{
