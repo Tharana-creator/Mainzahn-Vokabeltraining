@@ -2281,7 +2281,7 @@ const tidy=s=>String(s??"").replace(/\s*\n\s*/g," ").replace(/\s{2,}/g," ").trim
 const now=()=>new Date();
 const examMonth=()=>now().getMonth()+1;
 const exerciseMonth=()=>{const d=now(),m=d.getMonth()+1;return d.getDate()>=21?(m%12)+1:m};
-const examOpen=()=>now().getDate()>=16;
+const examOpen=()=>{const d=now().getDate();return d>=16&&d<=20;};
 const monthName=m=>names[m-1]||`Monat ${m}`;
 const isTrainer=()=>String(state.profile?.role||"").toLowerCase()==="ausbilder";
 function fail(t,d=""){app.innerHTML=`<main><div class="card"><h1>Mainzahn</h1><div class="error"><b>${esc(t)}</b>${d?`<br><br>${esc(d)}`:""}</div></div></main>`}
@@ -2306,7 +2306,7 @@ function home(){
    return `<div class="card"><h1>Willkommen, ${esc(state.profile.full_name)}</h1><p class="muted">Rolle: Ausbilder</p><div class="notice">Hier siehst du die Prüfungsergebnisse der Azubis – einschließlich der falsch beantworteten Vokabeln.</div><button data-go="results">Ergebnisse ansehen</button></div>`;
  }
  const em=exerciseMonth(),xm=examMonth();
- return `<div class="card"><div class="row"><div><h1>Willkommen, ${esc(state.profile.full_name)}</h1><p class="muted">Rolle: ${esc(state.profile.role)}</p></div><span class="badge">${examOpen()?"Prüfung freigeschaltet":"Übungsphase"}</span></div></div><div class="grid"><div class="card learn"><h2>Übung – ${monthName(em)}</h2><div class="stat">${MONTHS[em-1].length}</div><div class="muted">Vokabeln</div><br><button data-go="learn">Übung starten</button></div><div class="card exam ${examOpen()?'':'locked'}"><h2>Prüfung – ${monthName(xm)}</h2><div class="stat">${examOpen()?MONTHS[xm-1].length:'–'}</div><div class="muted">${examOpen()?'Vokabeln':'ab dem 16. freigeschaltet'}</div><br><button data-go="exam" ${examOpen()?'':'disabled'}>Prüfung starten</button></div></div><div class="notice">Ab dem <b>21. des Vormonats</b> beginnt die Übungsphase für den Folgemonat. Die Prüfung des aktuellen Monats wird am <b>16.</b> freigeschaltet.</div>`;
+ return `<div class="card"><div class="row"><div><h1>Willkommen, ${esc(state.profile.full_name)}</h1><p class="muted">Rolle: ${esc(state.profile.role)}</p></div><span class="badge">${examOpen()?"Prüfung freigeschaltet":"Übungsphase"}</span></div></div><div class="grid"><div class="card learn"><h2>Übung – ${monthName(em)}</h2><div class="stat">${MONTHS[em-1].length}</div><div class="muted">Vokabeln</div><br><button data-go="learn">Übung starten</button></div><div class="card exam ${examOpen()?'':'locked'}"><h2>Prüfung – ${monthName(xm)}</h2><div class="stat">${examOpen()?MONTHS[xm-1].length:'–'}</div><div class="muted">${examOpen()?'Vokabeln':'nur vom 16.–20. freigeschaltet'}</div><br><button data-go="exam" ${examOpen()?'':'disabled'}>Prüfung starten</button></div></div><div class="notice">Ab dem <b>21. des Vormonats</b> beginnt die Übungsphase für den Folgemonat. Die Prüfung des aktuellen Monats ist nur vom <b>16.–20.</b> freigeschaltet.</div>`;
 }
 
 function learnView(){
@@ -2344,7 +2344,7 @@ function mistakeList(items){
 
 function renderExam(){
  const m=examMonth(),list=MONTHS[m-1];
- if(!examOpen())return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung wird am 16. des Monats freigeschaltet.</p></div>`;
+ if(!examOpen())return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung ist nur vom 16.–20. des Monats freigeschaltet.</p></div>`;
  if(!state.exam)return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung umfasst <b>${list.length}</b> Vokabeln.</p><p class="muted">Nach dem Start werden die Antworten bewertet.</p><button id="startExam">Prüfung starten</button></div>`;
  const x=state.exam;
  if(x.i>=list.length){
