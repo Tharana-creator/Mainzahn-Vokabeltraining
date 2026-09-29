@@ -2278,7 +2278,36 @@ const state={user:null,profile:null,tab:"home",learn:0,exam:null,trainerResults:
 const names=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 const tidy=s=>String(s??"").replace(/\s*\n\s*/g," ").replace(/\s{2,}/g," ").trim();
-const compactText=s=>tidy(s).toLocaleLowerCase("de-DE").replace(/[^a-z0-9äöüß]/g,"");
+// PDF-Zeilenumbrüche haben teilweise Wörter mitten im Wort getrennt.
+// Diese Funktion entfernt die sichtbaren OCR/PDF-Lücken auch bei alten Supabase-Ergebnissen.
+const repairWordBreaks=s=>{
+  let t=tidy(s);
+  const fixes={
+    "Teilprothes e":"Teilprothese","Geschiebe n":"Geschieben","abgestorb enes":"abgestorbenes",
+    "mangelnde r":"mangelnder","Blutversor gung":"Blutversorgung","Schmerzm ittel":"Schmerzmittel",
+    "Schmerze n":"Schmerzen","betreffend e":"betreffende","Bewusstse insverlust":"Bewusstseinsverlust",
+    "Prämolare n":"Prämolaren","Wurzelkan al":"Wurzelkanal","Zahnfleisc hspitze":"Zahnfleischspitze",
+    "Zahnfleisc h":"Zahnfleisch","Knochens ubstanz":"Knochensubstanz","Kompositf üllungen":"Kompositfüllungen",
+    "eingeschra ubt":"eingeschraubt","Gefühlswa hrnehmun g":"Gefühlswahrnehmung",
+    "Entzündun g":"Entzündung","Behandlun g":"Behandlung","Aufklappu ng":"Aufklappung",
+    "Schleimha ut":"Schleimhaut","Kiefergele nk":"Kiefergelenk","Kaumuskul atur":"Kaumuskulatur",
+    "Spüllösung für gangränös e":"Spüllösung für gangränöse","Wurzelkan äle":"Wurzelkanäle",
+    "Schmerza usschaltun g":"Schmerzausschaltung","Nichtedel metall":"Nichtedelmetall",
+    "Backenzäh ne":"Backenzähne","Implantatk örper":"Implantatkörper","Implantata ufbau":"Implantataufbau",
+    "Abformung verbunden":"Abformung verbunden","Abdruckm aterial":"Abdruckmaterial",
+    "Haftvermitt ler":"Haftvermittler","Zahnschm elz":"Zahnschmelz","Anwendun g":"Anwendung",
+    "zusammen ziehend":"zusammenziehend","Einschleif en":"Einschleifen","therapeutis che":"therapeutische",
+    "Kiefergele nksbeschw erden":"Kiefergelenksbeschwerden","vollkomme ne":"vollkommene",
+    "Ansammlu ng":"Ansammlung","Abflußmög lichkeit":"Abflußmöglichkeit","Implantata ufbauteil":"Implantataufbauteil",
+    "blutverdün nender":"blutverdünnender","Oberfläche n":"Oberflächen","Kunstoffkle bern":"Kunstoffklebern",
+    "Aufbau des Zahnes":"Aufbau des Zahnes","Röntgenübersichtsauf nahme":"Röntgenübersichtsaufnahme"
+  };
+  for(const [a,b] of Object.entries(fixes)) t=t.split(a).join(b);
+  // Einzelne abgetrennte Buchstaben am Wortende (z. B. „Schmerze n“, „betreffend e“).
+  t=t.replace(/([A-Za-zÄÖÜäöüß]{3,})\s+([a-z])(?=([ ,.;:!?)\]]|$))/g,"$1$2");
+  return t.replace(/\s{2,}/g," ").trim();
+};
+const compactText=s=>repairWordBreaks(s).toLocaleLowerCase("de-DE").replace(/[^a-z0-9äöüß]/g,"");
 function cleanStoredText(s){
   const t=tidy(s);
   const key=compactText(t);
@@ -2286,11 +2315,11 @@ function cleanStoredText(s){
   for(const list of MONTHS){
     for(const v of list){
       for(const candidate of [v.term,v.meaning,v.practice,v.prep]){
-        if(candidate && compactText(candidate)===key) return tidy(candidate);
+        if(candidate && compactText(candidate)===key) return repairWordBreaks(candidate);
       }
     }
   }
-  return t;
+  return repairWordBreaks(t);
 }
 const now=()=>new Date();
 const examMonth=()=>now().getMonth()+1;
@@ -2325,7 +2354,7 @@ function home(){
 
 function learnView(){
  const m=exerciseMonth(),list=MONTHS[m-1],i=Math.min(state.learn,list.length-1),v=list[i];
- return `<div class="card"><div class="row"><h2>Übung – ${monthName(m)}</h2><span>${i+1} / ${list.length}</span></div><div class="progress"><div class="bar" style="width:${((i+1)/list.length)*100}%"></div></div><br><h3>${esc(tidy(v.term))}</h3><p style="font-size:20px;line-height:1.55">${esc(tidy(v.meaning))}</p>${v.practice?`<p><b>Praxis:</b> ${esc(tidy(v.practice))}</p>`:''}${v.prep?`<p><b>Aufbereitung:</b> ${esc(tidy(v.prep))}</p>`:''}<div class="row"><button id="prev" class="secondary">Zurück</button><button id="next">Weiter</button></div></div>`;
+ return `<div class="card"><div class="row"><h2>Übung – ${monthName(m)}</h2><span>${i+1} / ${list.length}</span></div><div class="progress"><div class="bar" style="width:${((i+1)/list.length)*100}%"></div></div><br><h3>${esc(repairWordBreaks(v.term))}</h3><p style="font-size:20px;line-height:1.55">${esc(repairWordBreaks(v.meaning))}</p>${v.practice?`<p><b>Praxis:</b> ${esc(repairWordBreaks(v.practice))}</p>`:''}${v.prep?`<p><b>Aufbereitung:</b> ${esc(repairWordBreaks(v.prep))}</p>`:''}<div class="row"><button id="prev" class="secondary">Zurück</button><button id="next">Weiter</button></div></div>`;
 }
 
 function makeChoices(list,i){
@@ -2367,7 +2396,7 @@ function renderExam(){
  }
  const v=list[x.i];
  if(!x.choices)x.choices=makeChoices(list,x.i);
- return `<div class="card exam"><div class="row"><h2>Frage ${x.i+1} / ${list.length}</h2><span class="badge">Prüfung</span></div><div class="progress"><div class="bar" style="width:${((x.i+1)/list.length)*100}%"></div></div><br><h3>${esc(tidy(v.term))}</h3><p>Welche Bedeutung ist richtig?</p>${x.choices.map((c,j)=>`<button class="choice" data-answer="${j}">${esc(tidy(c))}</button>`).join('')}</div>`;
+ return `<div class="card exam"><div class="row"><h2>Frage ${x.i+1} / ${list.length}</h2><span class="badge">Prüfung</span></div><div class="progress"><div class="bar" style="width:${((x.i+1)/list.length)*100}%"></div></div><br><h3>${esc(repairWordBreaks(v.term))}</h3><p>Welche Bedeutung ist richtig?</p>${x.choices.map((c,j)=>`<button class="choice" data-answer="${j}">${esc(repairWordBreaks(c))}</button>`).join('')}</div>`;
 }
 
 async function loadTrainerResults(){
@@ -2398,7 +2427,7 @@ function bind(){
    document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=async()=>{
      const list=MONTHS[examMonth()-1],v=list[state.exam.i],correct=tidy(v.meaning),picked=tidy(state.exam.choices[Number(b.dataset.answer)]);
      if(picked===correct)state.exam.correct++;
-     else state.exam.mistakes.push({term:tidy(v.term),picked,correct});
+     else state.exam.mistakes.push({term:repairWordBreaks(v.term),picked:repairWordBreaks(picked),correct:repairWordBreaks(correct)});
      state.exam.i++;state.exam.choices=null;
      if(state.exam.i>=list.length&&!state.exam.saveStarted){
        state.exam.saveStarted=true;
