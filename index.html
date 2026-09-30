@@ -2455,6 +2455,27 @@ function shuffleProbe(a){
  return a;
 }
 
+
+function errorStoreKey(month=exerciseMonth()){
+ return `mainzahn_practice_errors_${state.user?.id||"guest"}_${now().getFullYear()}_${month}`;
+}
+function loadPracticeErrors(month=exerciseMonth()){
+ try{return JSON.parse(localStorage.getItem(errorStoreKey(month))||"[]")}catch(e){return []}
+}
+function savePracticeErrors(items,month=exerciseMonth()){
+ localStorage.setItem(errorStoreKey(month),JSON.stringify(items));
+}
+function addPracticeError(item,month=exerciseMonth()){
+ const items=loadPracticeErrors(month);
+ const key=tidy(item.term);
+ const next=items.filter(x=>tidy(x.term)!==key);
+ next.push({term:item.term,meaning:item.meaning});
+ savePracticeErrors(next,month);
+}
+function removePracticeError(term,month=exerciseMonth()){
+ savePracticeErrors(loadPracticeErrors(month).filter(x=>tidy(x.term)!==tidy(term)),month);
+}
+
 function startProbeExam(){
  const m=exerciseMonth();
  const vocab=MONTHS[m-1].filter(v=>v&&v.term&&v.meaning);
@@ -2477,6 +2498,10 @@ function startProbeExam(){
  }
  function results(){
    const correct=questions.filter(q=>q.options[q.answer]===q.correct).length;
+   questions.forEach(q=>{
+     const chosen=q.answer===null?null:q.options[q.answer];
+     if(chosen!==q.correct) addPracticeError({term:q.term,meaning:q.correct},m);
+   });
    overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Probeprüfung – Ergebnis</h1><div>Nur zum Üben · keine Speicherung in Supabase</div></div></div><div class="probe-card"><h2>${correct} von ${questions.length} richtig</h2><p>${Math.round(correct/questions.length*100)} %</p><div>${questions.map((q,i)=>{const chosen=q.answer===null?'Keine Antwort':q.options[q.answer],ok=chosen===q.correct;return `<div class="probe-result-row"><b>${i+1}. ${esc(repairWordBreaks(q.term))}</b><br>${ok?'✓ Richtig':'✗ Deine Antwort: '+esc(repairWordBreaks(chosen))+'<br>Richtig: '+esc(repairWordBreaks(q.correct))}</div>`;}).join('')}</div><div class="probe-actions"><button class="probe-btn probe-secondary" id="probe-close2">Zurück zur Übung</button><button class="probe-btn probe-primary" id="probe-again">Neue Probeprüfung</button></div></div></div>`;
    overlay.querySelector('#probe-close2').onclick=close;overlay.querySelector('#probe-again').onclick=()=>{close();startProbeExam();};
  }
@@ -2489,13 +2514,50 @@ function startWritingPractice(){
  const close=()=>overlay.remove();
  function draw(){const v=list[i];overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Schreiben üben</h1><div>${monthName(m)} · ${i+1} von ${list.length}</div></div><button class="probe-btn probe-secondary" id="write-close">Zurück</button></div><div class="probe-card"><h2>${esc(repairWordBreaks(v.term))}</h2><p>Schreibe die Bedeutung:</p><input id="write-answer" type="text" autocomplete="off" placeholder="Antwort eingeben"><div id="write-feedback"></div><div class="probe-actions"><button class="probe-btn probe-secondary" id="write-show">Lösung zeigen</button><button class="probe-btn probe-primary" id="write-next">Prüfen</button></div></div></div>`;
  overlay.querySelector('#write-close').onclick=close; overlay.querySelector('#write-show').onclick=()=>{overlay.querySelector('#write-feedback').innerHTML=`<div class="notice"><b>Richtige Antwort:</b><br>${esc(repairWordBreaks(v.meaning))}</div>`};
- overlay.querySelector('#write-next').onclick=()=>{const a=tidy(overlay.querySelector('#write-answer').value),correct=tidy(v.meaning);if(!a){alert('Bitte gib zuerst eine Antwort ein.');return;}overlay.querySelector('#write-feedback').innerHTML=`<div class="notice"><b>${a===correct?'✓ Richtig':'Noch nicht ganz.'}</b><br>Richtige Antwort: ${esc(repairWordBreaks(v.meaning))}</div>`;const b=overlay.querySelector('#write-next');b.textContent=i===list.length-1?'Beenden':'Weiter';b.onclick=()=>{if(i===list.length-1)close();else{i++;draw();}}};
+ overlay.querySelector('#write-next').onclick=()=>{const a=tidy(overlay.querySelector('#write-answer').value),correct=tidy(v.meaning);if(!a){alert('Bitte gib zuerst eine Antwort ein.');return;}if(a!==correct)addPracticeError({term:v.term,meaning:v.meaning},m);overlay.querySelector('#write-feedback').innerHTML=`<div class="notice"><b>${a===correct?'✓ Richtig':'Noch nicht ganz.'}</b><br>Richtige Antwort: ${esc(repairWordBreaks(v.meaning))}</div>`;const b=overlay.querySelector('#write-next');b.textContent=i===list.length-1?'Beenden':'Weiter';b.onclick=()=>{if(i===list.length-1)close();else{i++;draw();}}};
  } draw();
 }
 function startErrorTraining(){
+ const m=exerciseMonth();
+ let errors=shuffleProbe(loadPracticeErrors(m));
  const overlay=document.createElement('div');overlay.className='probe-overlay';document.body.appendChild(overlay);
- overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Fehlertraining</h1><div>Gezieltes Wiederholen</div></div></div><div class="probe-card"><h2>Noch keine Übungsfehler gespeichert</h2><p>Hier erscheinen künftig die Vokabeln, die du beim Üben falsch beantwortet hast.</p><div class="probe-actions"><button class="probe-btn probe-primary" id="errors-close">Zurück zur Übungsauswahl</button></div></div></div>`;
- overlay.querySelector('#errors-close').onclick=()=>overlay.remove();
+ const close=()=>overlay.remove();
+
+ if(!errors.length){
+   overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Fehlertraining</h1><div>${monthName(m)} · Gezieltes Wiederholen</div></div></div><div class="probe-card"><h2>Keine Fehler zum Üben 🎉</h2><p>Falsch beantwortete Vokabeln aus der Probeprüfung oder aus „Schreiben üben“ erscheinen hier automatisch.</p><div class="probe-actions"><button class="probe-btn probe-primary" id="errors-close">Zurück zur Übungsauswahl</button></div></div></div>`;
+   overlay.querySelector('#errors-close').onclick=close;
+   return;
+ }
+
+ let i=0;
+ function draw(){
+   if(!errors.length){
+     overlay.innerHTML=`<div class="probe-wrap"><div class="probe-card"><h1>Fehlertraining geschafft 🎉</h1><p>Du hast alle gespeicherten Fehler richtig beantwortet.</p><button class="probe-btn probe-primary" id="errors-done">Zurück zur Übungsauswahl</button></div></div>`;
+     overlay.querySelector('#errors-done').onclick=close; return;
+   }
+   if(i>=errors.length)i=0;
+   const v=errors[i];
+   const monthVocab=MONTHS[m-1].filter(x=>x&&x.term&&x.meaning);
+   const wrong=shuffleProbe(monthVocab.filter(x=>tidy(x.meaning)!==tidy(v.meaning))).slice(0,3).map(x=>x.meaning);
+   const options=shuffleProbe([v.meaning,...wrong]);
+   overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Fehlertraining</h1><div>${monthName(m)} · ${errors.length} Fehler übrig</div></div><button class="probe-btn probe-secondary" id="errors-close">Zurück</button></div><div class="probe-card"><h2>${esc(repairWordBreaks(v.term))}</h2><p>Welche Bedeutung ist richtig?</p><div class="probe-options">${options.map((o,j)=>`<button class="probe-option" data-error-answer="${j}">${esc(repairWordBreaks(o))}</button>`).join('')}</div><div id="error-feedback"></div></div></div>`;
+   overlay.querySelector('#errors-close').onclick=close;
+   overlay.querySelectorAll('[data-error-answer]').forEach(el=>el.onclick=()=>{
+     const picked=options[Number(el.dataset.errorAnswer)];
+     if(tidy(picked)===tidy(v.meaning)){
+       removePracticeError(v.term,m);
+       errors=errors.filter(x=>tidy(x.term)!==tidy(v.term));
+       overlay.querySelector('#error-feedback').innerHTML=`<div class="notice"><b>✓ Richtig!</b> Diese Vokabel wurde aus dem Fehlertraining entfernt.</div><div class="probe-actions"><button class="probe-btn probe-primary" id="error-next">Weiter</button></div>`;
+       overlay.querySelectorAll('[data-error-answer]').forEach(b=>b.disabled=true);
+       overlay.querySelector('#error-next').onclick=draw;
+     }else{
+       overlay.querySelector('#error-feedback').innerHTML=`<div class="notice"><b>✗ Noch nicht richtig.</b><br>Richtige Antwort: ${esc(repairWordBreaks(v.meaning))}</div><div class="probe-actions"><button class="probe-btn probe-primary" id="error-next">Noch einmal später</button></div>`;
+       overlay.querySelectorAll('[data-error-answer]').forEach(b=>b.disabled=true);
+       overlay.querySelector('#error-next').onclick=()=>{i=(i+1)%errors.length;draw();};
+     }
+   });
+ }
+ draw();
 }
 
 function makeChoices(list,i){
