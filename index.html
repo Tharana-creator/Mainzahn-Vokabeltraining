@@ -2274,7 +2274,7 @@ const MONTHS = [
 ];
 const TOTAL = 277;
 const app=document.getElementById("app");
-const state={user:null,profile:null,tab:"home",learn:0,exam:null,trainerResults:[],trainerLoading:false};
+const state={user:null,profile:null,tab:"home",learn:0,learnMode:null,exam:null,trainerResults:[],trainerLoading:false};
 const names=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 const tidy=s=>{
@@ -2429,7 +2429,7 @@ function shell(content){
    : `<button class="${state.tab==='home'?'active':''}" data-tab="home">Übersicht</button><button class="${state.tab==='learn'?'active':''}" data-tab="learn">Übung</button><button class="${state.tab==='exam'?'active':''}" data-tab="exam">Prüfung</button>`;
  app.innerHTML=`<header><div class="top"><div><div class="brand">mainzahn</div><div class="sub">${isTrainer()?'Ausbilderbereich':'Azubi Vokabeltrainer'}</div></div><button id="out" class="secondary">Abmelden</button></div></header><main><div class="tabs">${tabs}</div>${content}</main>`;
  document.getElementById('out').onclick=async()=>{await sb.auth.signOut();location.reload()};
- document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=async()=>{state.tab=b.dataset.tab;state.exam=null;if(state.tab==="results")await loadTrainerResults();render()});
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=async()=>{state.tab=b.dataset.tab;state.exam=null;if(state.tab==='learn')state.learnMode=null;if(state.tab==="results")await loadTrainerResults();render()});
 }
 
 function home(){
@@ -2441,8 +2441,60 @@ function home(){
 }
 
 function learnView(){
- const m=exerciseMonth(),list=MONTHS[m-1],i=Math.min(state.learn,list.length-1),v=list[i];
- return `<div class="card"><div class="row"><h2>Übung – ${monthName(m)}</h2><span>${i+1} / ${list.length}</span></div><div class="progress"><div class="bar" style="width:${((i+1)/list.length)*100}%"></div></div><br><h3>${esc(repairWordBreaks(v.term))}</h3><p style="font-size:20px;line-height:1.55">${esc(repairWordBreaks(v.meaning))}</p>${v.practice?`<p><b>Praxis:</b> ${esc(repairWordBreaks(v.practice))}</p>`:''}${v.prep?`<p><b>Aufbereitung:</b> ${esc(repairWordBreaks(v.prep))}</p>`:''}<div class="row"><button id="prev" class="secondary">Zurück</button><button id="next">Weiter</button></div></div>`;
+ const m=exerciseMonth(),list=MONTHS[m-1];
+ if(!state.learnMode){
+   return `<div class="card"><h2>Übung – ${monthName(m)}</h2><p class="muted">Wähle aus, wie du üben möchtest.</p><div class="grid"><div class="card learn"><h3>📖 Vokabeln lernen</h3><p>Alle ${list.length} Vokabeln für ${monthName(m)} in Ruhe durchgehen.</p><button id="startLearn">Vokabeln lernen</button></div><div class="card exam"><h3>📝 Probeprüfung</h3><p>20 zufällige Fragen mit vier Antwortmöglichkeiten. Das Ergebnis wird nicht als echte Prüfung gespeichert.</p><button id="startProbe">Probeprüfung starten</button></div><div class="card"><h3>✍️ Schreiben üben</h3><p>Vokabeln selbst eintippen und anschließend direkt mit der richtigen Antwort vergleichen.</p><button id="startWriting">Schreiben üben</button></div><div class="card"><h3>🔁 Fehlertraining</h3><p>Gezielt die Vokabeln wiederholen, die beim Üben falsch beantwortet wurden.</p><button id="startErrors">Fehlertraining</button></div></div></div>`;
+ }
+ const i=Math.min(state.learn,list.length-1),v=list[i];
+ return `<div class="card"><div class="row"><h2>Übung – ${monthName(m)}</h2><span>${i+1} / ${list.length}</span></div><div class="progress"><div class="bar" style="width:${((i+1)/list.length)*100}%"></div></div><br><h3>${esc(repairWordBreaks(v.term))}</h3><p style="font-size:20px;line-height:1.55">${esc(repairWordBreaks(v.meaning))}</p>${v.practice?`<p><b>Praxis:</b> ${esc(repairWordBreaks(v.practice))}</p>`:''}${v.prep?`<p><b>Aufbereitung:</b> ${esc(repairWordBreaks(v.prep))}</p>`:''}<div class="row"><button id="backLearnMenu" class="secondary">Übungsauswahl</button><div><button id="prev" class="secondary">Zurück</button> <button id="next">Weiter</button></div></div></div>`;
+}
+
+function shuffleProbe(a){
+ a=a.slice();
+ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+ return a;
+}
+
+function startProbeExam(){
+ const vocab=MONTHS.flat().filter(v=>v&&v.term&&v.meaning);
+ if(vocab.length<4){alert('Die Vokabeldaten konnten für die Probeprüfung nicht geladen werden.');return;}
+ const count=Math.min(20,vocab.length);
+ const questions=shuffleProbe(vocab).slice(0,count).map(q=>{
+   const wrong=shuffleProbe(vocab.filter(v=>v!==q&&tidy(v.meaning)!==tidy(q.meaning))).slice(0,3).map(v=>v.meaning);
+   return {term:q.term,correct:q.meaning,options:shuffleProbe([q.meaning,...wrong]),answer:null};
+ });
+ let idx=0;
+ const overlay=document.createElement('div');overlay.className='probe-overlay';document.body.appendChild(overlay);
+ const close=()=>overlay.remove();
+ function draw(){
+   const q=questions[idx];
+   overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Probeprüfung</h1><div>20 zufällige Vokabeln · wird nicht als echte Prüfung gespeichert</div></div><button class="probe-btn probe-secondary" id="probe-close">Beenden</button></div><div class="probe-card"><div style="display:flex;justify-content:space-between"><b>Frage ${idx+1} von ${questions.length}</b><span>${Math.round((idx+1)/questions.length*100)} %</span></div><div class="probe-progress"><div style="width:${(idx+1)/questions.length*100}%"></div></div><h2 style="font-size:28px">${esc(repairWordBreaks(q.term))}</h2><p>Welche Bedeutung ist richtig?</p><div class="probe-options">${q.options.map((o,i)=>`<button class="probe-option ${q.answer===i?'selected':''}" data-probe-answer="${i}">${esc(repairWordBreaks(o))}</button>`).join('')}</div><div class="probe-actions"><button class="probe-btn probe-secondary" id="probe-back" ${idx===0?'disabled':''}>Zurück</button><button class="probe-btn probe-primary" id="probe-next">${idx===questions.length-1?'Auswerten':'Weiter'}</button></div></div></div>`;
+   overlay.querySelector('#probe-close').onclick=close;
+   overlay.querySelectorAll('[data-probe-answer]').forEach(el=>el.onclick=()=>{q.answer=Number(el.dataset.probeAnswer);draw();});
+   overlay.querySelector('#probe-back').onclick=()=>{if(idx>0){idx--;draw();}};
+   overlay.querySelector('#probe-next').onclick=()=>{if(q.answer===null){alert('Bitte wähle zuerst eine Antwort aus.');return;}if(idx<questions.length-1){idx++;draw();}else results();};
+ }
+ function results(){
+   const correct=questions.filter(q=>q.options[q.answer]===q.correct).length;
+   overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Probeprüfung – Ergebnis</h1><div>Nur zum Üben · keine Speicherung in Supabase</div></div></div><div class="probe-card"><h2>${correct} von ${questions.length} richtig</h2><p>${Math.round(correct/questions.length*100)} %</p><div>${questions.map((q,i)=>{const chosen=q.answer===null?'Keine Antwort':q.options[q.answer],ok=chosen===q.correct;return `<div class="probe-result-row"><b>${i+1}. ${esc(repairWordBreaks(q.term))}</b><br>${ok?'✓ Richtig':'✗ Deine Antwort: '+esc(repairWordBreaks(chosen))+'<br>Richtig: '+esc(repairWordBreaks(q.correct))}</div>`;}).join('')}</div><div class="probe-actions"><button class="probe-btn probe-secondary" id="probe-close2">Zurück zur Übung</button><button class="probe-btn probe-primary" id="probe-again">Neue Probeprüfung</button></div></div></div>`;
+   overlay.querySelector('#probe-close2').onclick=close;overlay.querySelector('#probe-again').onclick=()=>{close();startProbeExam();};
+ }
+ draw();
+}
+
+function startWritingPractice(){
+ const m=exerciseMonth(),list=shuffleProbe(MONTHS[m-1]); let i=0;
+ const overlay=document.createElement('div');overlay.className='probe-overlay';document.body.appendChild(overlay);
+ const close=()=>overlay.remove();
+ function draw(){const v=list[i];overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Schreiben üben</h1><div>${monthName(m)} · ${i+1} von ${list.length}</div></div><button class="probe-btn probe-secondary" id="write-close">Zurück</button></div><div class="probe-card"><h2>${esc(repairWordBreaks(v.term))}</h2><p>Schreibe die Bedeutung:</p><input id="write-answer" type="text" autocomplete="off" placeholder="Antwort eingeben"><div id="write-feedback"></div><div class="probe-actions"><button class="probe-btn probe-secondary" id="write-show">Lösung zeigen</button><button class="probe-btn probe-primary" id="write-next">Prüfen</button></div></div></div>`;
+ overlay.querySelector('#write-close').onclick=close; overlay.querySelector('#write-show').onclick=()=>{overlay.querySelector('#write-feedback').innerHTML=`<div class="notice"><b>Richtige Antwort:</b><br>${esc(repairWordBreaks(v.meaning))}</div>`};
+ overlay.querySelector('#write-next').onclick=()=>{const a=tidy(overlay.querySelector('#write-answer').value),correct=tidy(v.meaning);if(!a){alert('Bitte gib zuerst eine Antwort ein.');return;}overlay.querySelector('#write-feedback').innerHTML=`<div class="notice"><b>${a===correct?'✓ Richtig':'Noch nicht ganz.'}</b><br>Richtige Antwort: ${esc(repairWordBreaks(v.meaning))}</div>`;const b=overlay.querySelector('#write-next');b.textContent=i===list.length-1?'Beenden':'Weiter';b.onclick=()=>{if(i===list.length-1)close();else{i++;draw();}}};
+ } draw();
+}
+function startErrorTraining(){
+ const overlay=document.createElement('div');overlay.className='probe-overlay';document.body.appendChild(overlay);
+ overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Fehlertraining</h1><div>Gezieltes Wiederholen</div></div></div><div class="probe-card"><h2>Noch keine Übungsfehler gespeichert</h2><p>Hier erscheinen künftig die Vokabeln, die du beim Üben falsch beantwortet hast.</p><div class="probe-actions"><button class="probe-btn probe-primary" id="errors-close">Zurück zur Übungsauswahl</button></div></div></div>`;
+ overlay.querySelector('#errors-close').onclick=()=>overlay.remove();
 }
 
 function makeChoices(list,i){
@@ -2503,8 +2555,14 @@ function trainerResultsView(){
 }
 
 function bind(){
- document.querySelectorAll('[data-go]').forEach(b=>b.onclick=async()=>{state.tab=b.dataset.go;if(state.tab==="results")await loadTrainerResults();render()});
+ document.querySelectorAll('[data-go]').forEach(b=>b.onclick=async()=>{state.tab=b.dataset.go;if(state.tab==='learn')state.learnMode=null;if(state.tab==="results")await loadTrainerResults();render()});
  if(state.tab==='learn'){
+   const startLearn=document.getElementById('startLearn'),startProbe=document.getElementById('startProbe'),startWriting=document.getElementById('startWriting'),startErrors=document.getElementById('startErrors'),backMenu=document.getElementById('backLearnMenu');
+   if(startLearn)startLearn.onclick=()=>{state.learnMode='vocab';state.learn=0;render()};
+   if(startProbe)startProbe.onclick=startProbeExam;
+   if(startWriting)startWriting.onclick=startWritingPractice;
+   if(startErrors)startErrors.onclick=startErrorTraining;
+   if(backMenu)backMenu.onclick=()=>{state.learnMode=null;render()};
    const p=document.getElementById('prev'),n=document.getElementById('next');
    if(p)p.onclick=()=>{state.learn=Math.max(0,state.learn-1);render()};
    if(n)n.onclick=()=>{state.learn=(state.learn+1)%MONTHS[exerciseMonth()-1].length;render()};
@@ -2549,12 +2607,6 @@ try{const c=window.MAINZAHN_CONFIG;if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw
 </script>
 
 <style id="probepruefung-style">
-  .probe-fab{
-    position:fixed; right:22px; bottom:22px; z-index:9998;
-    border:0; border-radius:14px; padding:14px 18px; font-weight:800;
-    background:#a90019; color:#fff; box-shadow:0 8px 24px rgba(0,0,0,.18);
-    cursor:pointer;
-  }
   .probe-overlay{
     position:fixed; inset:0; z-index:9999; background:#f4f6fa; overflow:auto;
     font-family:inherit; color:#172033;
@@ -2571,116 +2623,9 @@ try{const c=window.MAINZAHN_CONFIG;if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw
   .probe-progress{height:9px;background:#e6e9ef;border-radius:99px;overflow:hidden;margin:12px 0 22px}
   .probe-progress>div{height:100%;background:#a90019}
   .probe-result-row{padding:12px 0;border-bottom:1px solid #e8ebf0}
-  @media(max-width:600px){.probe-fab{right:12px;bottom:12px}.probe-wrap{padding:16px 12px 50px}}
+  @media(max-width:600px){.probe-wrap{padding:16px 12px 50px}}
 </style>
-<button id="probepruefung-start" class="probe-fab" type="button">Probeprüfung</button>
-<script id="probepruefung-script">
-(function(){
-  const btn = document.getElementById('probepruefung-start');
-  if(!btn) return;
 
-  function allVocabulary(){
-    const result=[];
-    try{
-      if(typeof MONTHS !== 'undefined'){
-        Object.keys(MONTHS).forEach(month=>{
-          const m=MONTHS[month];
-          const arr = Array.isArray(m) ? m : (m && Array.isArray(m.items) ? m.items : []);
-          arr.forEach(x=>{
-            if(x && x.term && x.meaning) result.push({term:x.term, meaning:x.meaning, month});
-          });
-        });
-      }
-    }catch(e){}
-    return result;
-  }
-
-  function shuffle(a){
-    a=a.slice();
-    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
-    return a;
-  }
-
-  function start(){
-    const vocab=allVocabulary();
-    if(vocab.length<4){ alert('Die Vokabeldaten konnten für die Probeprüfung nicht geladen werden.'); return; }
-    const count=Math.min(20,vocab.length);
-    const questions=shuffle(vocab).slice(0,count).map(q=>{
-      const wrong=shuffle(vocab.filter(v=>v.term!==q.term)).slice(0,3).map(v=>v.meaning);
-      return {term:q.term, correct:q.meaning, options:shuffle([q.meaning,...wrong]), answer:null};
-    });
-    let idx=0;
-
-    const overlay=document.createElement('div');
-    overlay.className='probe-overlay';
-    document.body.appendChild(overlay);
-
-    function close(){ overlay.remove(); }
-
-    function render(){
-      const q=questions[idx];
-      overlay.innerHTML=`
-        <div class="probe-wrap">
-          <div class="probe-head">
-            <div><h1 style="margin:0">Probeprüfung</h1><div>20 zufällige Vokabeln · wird nicht als echte Prüfung gespeichert</div></div>
-            <button class="probe-btn probe-secondary" id="probe-close">Beenden</button>
-          </div>
-          <div class="probe-card">
-            <div style="display:flex;justify-content:space-between"><b>Frage ${idx+1} von ${questions.length}</b><span>${Math.round((idx+1)/questions.length*100)} %</span></div>
-            <div class="probe-progress"><div style="width:${(idx+1)/questions.length*100}%"></div></div>
-            <h2 style="font-size:28px">${escapeHtml(q.term)}</h2>
-            <p>Welche Bedeutung ist richtig?</p>
-            <div class="probe-options">
-              ${q.options.map((o,i)=>`<button class="probe-option ${q.answer===i?'selected':''}" data-i="${i}">${escapeHtml(o)}</button>`).join('')}
-            </div>
-            <div class="probe-actions">
-              <button class="probe-btn probe-secondary" id="probe-back" ${idx===0?'disabled':''}>Zurück</button>
-              <button class="probe-btn probe-primary" id="probe-next">${idx===questions.length-1?'Auswerten':'Weiter'}</button>
-            </div>
-          </div>
-        </div>`;
-      overlay.querySelector('#probe-close').onclick=close;
-      overlay.querySelectorAll('.probe-option').forEach(el=>el.onclick=()=>{q.answer=Number(el.dataset.i);render();});
-      const back=overlay.querySelector('#probe-back'); if(back) back.onclick=()=>{if(idx>0){idx--;render();}};
-      overlay.querySelector('#probe-next').onclick=()=>{
-        if(q.answer===null){alert('Bitte wähle zuerst eine Antwort aus.');return;}
-        if(idx<questions.length-1){idx++;render();} else results();
-      };
-    }
-
-    function results(){
-      const correct=questions.filter(q=>q.options[q.answer]===q.correct).length;
-      overlay.innerHTML=`
-        <div class="probe-wrap">
-          <div class="probe-head"><div><h1 style="margin:0">Probeprüfung – Ergebnis</h1><div>Nur zum Üben · keine Speicherung in Supabase</div></div></div>
-          <div class="probe-card">
-            <h2>${correct} von ${questions.length} richtig</h2>
-            <p>${Math.round(correct/questions.length*100)} %</p>
-            <div>
-              ${questions.map((q,i)=>{
-                const chosen=q.answer===null?'Keine Antwort':q.options[q.answer];
-                const ok=chosen===q.correct;
-                return `<div class="probe-result-row"><b>${i+1}. ${escapeHtml(q.term)}</b><br>${ok?'✓ Richtig':'✗ Deine Antwort: '+escapeHtml(chosen)+'<br>Richtig: '+escapeHtml(q.correct)}</div>`;
-              }).join('')}
-            </div>
-            <div class="probe-actions">
-              <button class="probe-btn probe-secondary" id="probe-close2">Zurück zum Trainer</button>
-              <button class="probe-btn probe-primary" id="probe-again">Neue Probeprüfung</button>
-            </div>
-          </div>
-        </div>`;
-      overlay.querySelector('#probe-close2').onclick=close;
-      overlay.querySelector('#probe-again').onclick=()=>{close();start();};
-    }
-    render();
-  }
-
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-  }
-  btn.addEventListener('click',start);
-})();
-</script>
 
 </body>
 </html>
