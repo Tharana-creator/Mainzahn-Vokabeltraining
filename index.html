@@ -2547,5 +2547,140 @@ async function boot(){
 try{const c=window.MAINZAHN_CONFIG;if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw new Error('config.js ist leer oder wird nicht gefunden.');const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');sb=createClient(c.supabaseUrl,c.supabaseAnonKey);await boot()}catch(e){fail('mainzahn konnte nicht gestartet werden',e.message)}
 
 </script>
+
+<style id="probepruefung-style">
+  .probe-fab{
+    position:fixed; right:22px; bottom:22px; z-index:9998;
+    border:0; border-radius:14px; padding:14px 18px; font-weight:800;
+    background:#a90019; color:#fff; box-shadow:0 8px 24px rgba(0,0,0,.18);
+    cursor:pointer;
+  }
+  .probe-overlay{
+    position:fixed; inset:0; z-index:9999; background:#f4f6fa; overflow:auto;
+    font-family:inherit; color:#172033;
+  }
+  .probe-wrap{max-width:920px;margin:0 auto;padding:24px 18px 60px}
+  .probe-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+  .probe-card{background:#fff;border:1px solid #dde2ea;border-radius:18px;padding:22px;box-shadow:0 5px 18px rgba(0,0,0,.06)}
+  .probe-options{display:grid;gap:10px;margin-top:18px}
+  .probe-option{width:100%;text-align:left;border:1px solid #ccd3dd;background:#fff;border-radius:12px;padding:14px;font-size:16px;cursor:pointer}
+  .probe-option.selected{outline:3px solid #a90019;border-color:#a90019}
+  .probe-actions{display:flex;justify-content:space-between;gap:12px;margin-top:22px}
+  .probe-btn{border:0;border-radius:12px;padding:12px 18px;font-weight:800;cursor:pointer}
+  .probe-primary{background:#a90019;color:#fff}.probe-secondary{background:#e9edf3;color:#172033}
+  .probe-progress{height:9px;background:#e6e9ef;border-radius:99px;overflow:hidden;margin:12px 0 22px}
+  .probe-progress>div{height:100%;background:#a90019}
+  .probe-result-row{padding:12px 0;border-bottom:1px solid #e8ebf0}
+  @media(max-width:600px){.probe-fab{right:12px;bottom:12px}.probe-wrap{padding:16px 12px 50px}}
+</style>
+<button id="probepruefung-start" class="probe-fab" type="button">Probeprüfung</button>
+<script id="probepruefung-script">
+(function(){
+  const btn = document.getElementById('probepruefung-start');
+  if(!btn) return;
+
+  function allVocabulary(){
+    const result=[];
+    try{
+      if(typeof MONTHS !== 'undefined'){
+        Object.keys(MONTHS).forEach(month=>{
+          const m=MONTHS[month];
+          const arr = Array.isArray(m) ? m : (m && Array.isArray(m.items) ? m.items : []);
+          arr.forEach(x=>{
+            if(x && x.term && x.meaning) result.push({term:x.term, meaning:x.meaning, month});
+          });
+        });
+      }
+    }catch(e){}
+    return result;
+  }
+
+  function shuffle(a){
+    a=a.slice();
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+    return a;
+  }
+
+  function start(){
+    const vocab=allVocabulary();
+    if(vocab.length<4){ alert('Die Vokabeldaten konnten für die Probeprüfung nicht geladen werden.'); return; }
+    const count=Math.min(20,vocab.length);
+    const questions=shuffle(vocab).slice(0,count).map(q=>{
+      const wrong=shuffle(vocab.filter(v=>v.term!==q.term)).slice(0,3).map(v=>v.meaning);
+      return {term:q.term, correct:q.meaning, options:shuffle([q.meaning,...wrong]), answer:null};
+    });
+    let idx=0;
+
+    const overlay=document.createElement('div');
+    overlay.className='probe-overlay';
+    document.body.appendChild(overlay);
+
+    function close(){ overlay.remove(); }
+
+    function render(){
+      const q=questions[idx];
+      overlay.innerHTML=`
+        <div class="probe-wrap">
+          <div class="probe-head">
+            <div><h1 style="margin:0">Probeprüfung</h1><div>20 zufällige Vokabeln · wird nicht als echte Prüfung gespeichert</div></div>
+            <button class="probe-btn probe-secondary" id="probe-close">Beenden</button>
+          </div>
+          <div class="probe-card">
+            <div style="display:flex;justify-content:space-between"><b>Frage ${idx+1} von ${questions.length}</b><span>${Math.round((idx+1)/questions.length*100)} %</span></div>
+            <div class="probe-progress"><div style="width:${(idx+1)/questions.length*100}%"></div></div>
+            <h2 style="font-size:28px">${escapeHtml(q.term)}</h2>
+            <p>Welche Bedeutung ist richtig?</p>
+            <div class="probe-options">
+              ${q.options.map((o,i)=>`<button class="probe-option ${q.answer===i?'selected':''}" data-i="${i}">${escapeHtml(o)}</button>`).join('')}
+            </div>
+            <div class="probe-actions">
+              <button class="probe-btn probe-secondary" id="probe-back" ${idx===0?'disabled':''}>Zurück</button>
+              <button class="probe-btn probe-primary" id="probe-next">${idx===questions.length-1?'Auswerten':'Weiter'}</button>
+            </div>
+          </div>
+        </div>`;
+      overlay.querySelector('#probe-close').onclick=close;
+      overlay.querySelectorAll('.probe-option').forEach(el=>el.onclick=()=>{q.answer=Number(el.dataset.i);render();});
+      const back=overlay.querySelector('#probe-back'); if(back) back.onclick=()=>{if(idx>0){idx--;render();}};
+      overlay.querySelector('#probe-next').onclick=()=>{
+        if(q.answer===null){alert('Bitte wähle zuerst eine Antwort aus.');return;}
+        if(idx<questions.length-1){idx++;render();} else results();
+      };
+    }
+
+    function results(){
+      const correct=questions.filter(q=>q.options[q.answer]===q.correct).length;
+      overlay.innerHTML=`
+        <div class="probe-wrap">
+          <div class="probe-head"><div><h1 style="margin:0">Probeprüfung – Ergebnis</h1><div>Nur zum Üben · keine Speicherung in Supabase</div></div></div>
+          <div class="probe-card">
+            <h2>${correct} von ${questions.length} richtig</h2>
+            <p>${Math.round(correct/questions.length*100)} %</p>
+            <div>
+              ${questions.map((q,i)=>{
+                const chosen=q.answer===null?'Keine Antwort':q.options[q.answer];
+                const ok=chosen===q.correct;
+                return `<div class="probe-result-row"><b>${i+1}. ${escapeHtml(q.term)}</b><br>${ok?'✓ Richtig':'✗ Deine Antwort: '+escapeHtml(chosen)+'<br>Richtig: '+escapeHtml(q.correct)}</div>`;
+              }).join('')}
+            </div>
+            <div class="probe-actions">
+              <button class="probe-btn probe-secondary" id="probe-close2">Zurück zum Trainer</button>
+              <button class="probe-btn probe-primary" id="probe-again">Neue Probeprüfung</button>
+            </div>
+          </div>
+        </div>`;
+      overlay.querySelector('#probe-close2').onclick=close;
+      overlay.querySelector('#probe-again').onclick=()=>{close();start();};
+    }
+    render();
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  }
+  btn.addEventListener('click',start);
+})();
+</script>
+
 </body>
 </html>
