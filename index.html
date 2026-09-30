@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mainzahn – Azubi Vokabeltrainer</title>
+<title>mainzahn – Azubi Vokabeltrainer</title>
 <style>
 :root{--bg:#f5f7fb;--card:#fff;--text:#172033;--muted:#64748b;--brand:#9b0018;--brand2:#65000f;--ok:#18794e;--danger:#b42318;--line:#dbe3ec}
 *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
@@ -2415,11 +2415,11 @@ const exerciseMonth=()=>{const d=now(),m=d.getMonth()+1;return d.getDate()>=21?(
 const examOpen=()=>{const d=now().getDate();return d>=16&&d<=20;};
 const monthName=m=>names[m-1]||`Monat ${m}`;
 const isTrainer=()=>String(state.profile?.role||"").toLowerCase()==="ausbilder";
-function fail(t,d=""){app.innerHTML=`<main><div class="card"><h1>Mainzahn</h1><div class="error"><b>${esc(t)}</b>${d?`<br><br>${esc(d)}`:""}</div></div></main>`}
+function fail(t,d=""){app.innerHTML=`<main><div class="card"><h1>mainzahn</h1><div class="error"><b>${esc(t)}</b>${d?`<br><br>${esc(d)}`:""}</div></div></main>`}
 let sb;
 
 async function loginScreen(){
- app.innerHTML=`<main><div class="card login"><div class="logo">Mainzahn</div><p class="muted">Azubi Vokabeltrainer</p><h2>Anmelden</h2><input id="email" type="email" placeholder="E-Mail"><input id="password" type="password" placeholder="Passwort"><button id="login">Anmelden</button><div id="err" class="error hidden"></div></div></main>`;
+ app.innerHTML=`<main><div class="card login"><div class="logo">mainzahn</div><p class="muted">Azubi Vokabeltrainer</p><h2>Anmelden</h2><input id="email" type="email" placeholder="E-Mail"><input id="password" type="password" placeholder="Passwort"><button id="login">Anmelden</button><div id="err" class="error hidden"></div></div></main>`;
  document.getElementById("login").onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:email.value.trim(),password:password.value});if(error){err.textContent=error.message;err.classList.remove("hidden")}else await boot()};
 }
 
@@ -2427,7 +2427,7 @@ function shell(content){
  const tabs=isTrainer()
    ? `<button class="${state.tab==='home'?'active':''}" data-tab="home">Übersicht</button><button class="${state.tab==='results'?'active':''}" data-tab="results">Ergebnisse</button>`
    : `<button class="${state.tab==='home'?'active':''}" data-tab="home">Übersicht</button><button class="${state.tab==='learn'?'active':''}" data-tab="learn">Übung</button><button class="${state.tab==='exam'?'active':''}" data-tab="exam">Prüfung</button>`;
- app.innerHTML=`<header><div class="top"><div><div class="brand">Mainzahn</div><div class="sub">${isTrainer()?'Ausbilderbereich':'Azubi Vokabeltrainer'}</div></div><button id="out" class="secondary">Abmelden</button></div></header><main><div class="tabs">${tabs}</div>${content}</main>`;
+ app.innerHTML=`<header><div class="top"><div><div class="brand">mainzahn</div><div class="sub">${isTrainer()?'Ausbilderbereich':'Azubi Vokabeltrainer'}</div></div><button id="out" class="secondary">Abmelden</button></div></header><main><div class="tabs">${tabs}</div>${content}</main>`;
  document.getElementById('out').onclick=async()=>{await sb.auth.signOut();location.reload()};
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=async()=>{state.tab=b.dataset.tab;state.exam=null;if(state.tab==="results")await loadTrainerResults();render()});
 }
@@ -2544,7 +2544,7 @@ async function boot(){
  state.profile=r.data;
  render();
 }
-try{const c=window.MAINZAHN_CONFIG;if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw new Error('config.js ist leer oder wird nicht gefunden.');const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');sb=createClient(c.supabaseUrl,c.supabaseAnonKey);await boot()}catch(e){fail('Mainzahn konnte nicht gestartet werden',e.message)}
+try{const c=window.MAINZAHN_CONFIG;if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw new Error('config.js ist leer oder wird nicht gefunden.');const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');sb=createClient(c.supabaseUrl,c.supabaseAnonKey);await boot()}catch(e){fail('mainzahn konnte nicht gestartet werden',e.message)}
 
 </script>
 </body>
