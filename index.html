@@ -2508,13 +2508,47 @@ function startProbeExam(){
  draw();
 }
 
+
+function normalizeWritingText(s){
+ return String(s||"").toLocaleLowerCase("de-DE").replace(/ß/g,"ss")
+ .replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue")
+ .replace(/[^a-z0-9\s-]/g," ")
+ .replace(/\b(der|die|das|den|dem|des|ein|eine|einer|einem|einen|und|oder|ist|sind|im|in|am|an|auf|von|vom|zur|zum|zu|mit|fuer|durch|bei|als|auch)\b/g," ")
+ .replace(/\s+/g," ").trim();
+}
+function levenshteinWriting(a,b){
+ const dp=Array(b.length+1).fill(0).map((_,i)=>i);
+ for(let i=1;i<=a.length;i++){let prev=dp[0];dp[0]=i;
+  for(let j=1;j<=b.length;j++){const old=dp[j];dp[j]=Math.min(dp[j]+1,dp[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=old;}
+ } return dp[b.length];
+}
+function writingWordMatch(a,b){
+ if(a===b)return true;
+ if(a.length<4||b.length<4)return false;
+ const d=levenshteinWriting(a,b);
+ return d<=1||(Math.max(a.length,b.length)>=8&&d<=2);
+}
+function evaluateWritingAnswer(answer,correct){
+ const a=normalizeWritingText(answer),c=normalizeWritingText(correct);
+ if(!a)return "wrong";
+ if(a===c)return "exact";
+ if(levenshteinWriting(a,c)<=Math.max(2,Math.floor(c.length*.12)))return "content";
+ const aw=a.split(" ").filter(w=>w.length>=3),cw=c.split(" ").filter(w=>w.length>=3);
+ if(!cw.length)return "wrong";
+ let matched=0;
+ for(const x of cw)if(aw.some(y=>writingWordMatch(y,x)))matched++;
+ const coverage=matched/cw.length,precision=aw.length?matched/aw.length:0;
+ if((cw.length<=2&&matched===cw.length)||(cw.length>=3&&coverage>=.70&&precision>=.45))return "content";
+ return "wrong";
+}
+
 function startWritingPractice(){
  const m=exerciseMonth(),list=shuffleProbe(MONTHS[m-1]); let i=0;
  const overlay=document.createElement('div');overlay.className='probe-overlay';document.body.appendChild(overlay);
  const close=()=>overlay.remove();
  function draw(){const v=list[i];overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Schreiben üben</h1><div>${monthName(m)} · ${i+1} von ${list.length}</div></div><button class="probe-btn probe-secondary" id="write-close">Zurück</button></div><div class="probe-card"><h2>${esc(repairWordBreaks(v.term))}</h2><p>Schreibe die Bedeutung:</p><input id="write-answer" type="text" autocomplete="off" placeholder="Antwort eingeben"><div id="write-feedback"></div><div class="probe-actions"><button class="probe-btn probe-secondary" id="write-show">Lösung zeigen</button><button class="probe-btn probe-primary" id="write-next">Prüfen</button></div></div></div>`;
  overlay.querySelector('#write-close').onclick=close; overlay.querySelector('#write-show').onclick=()=>{overlay.querySelector('#write-feedback').innerHTML=`<div class="notice"><b>Richtige Antwort:</b><br>${esc(repairWordBreaks(v.meaning))}</div>`};
- overlay.querySelector('#write-next').onclick=()=>{const a=tidy(overlay.querySelector('#write-answer').value),correct=tidy(v.meaning);if(!a){alert('Bitte gib zuerst eine Antwort ein.');return;}if(a!==correct)addPracticeError({term:v.term,meaning:v.meaning},m);overlay.querySelector('#write-feedback').innerHTML=`<div class="notice"><b>${a===correct?'✓ Richtig':'Noch nicht ganz.'}</b><br>Richtige Antwort: ${esc(repairWordBreaks(v.meaning))}</div>`;const b=overlay.querySelector('#write-next');b.textContent=i===list.length-1?'Beenden':'Weiter';b.onclick=()=>{if(i===list.length-1)close();else{i++;draw();}}};
+ overlay.querySelector('#write-next').onclick=()=>{const a=tidy(overlay.querySelector('#write-answer').value),correct=tidy(v.meaning);if(!a){alert('Bitte gib zuerst eine Antwort ein.');return;}const verdict=evaluateWritingAnswer(a,v.meaning);if(verdict==='wrong')addPracticeError({term:v.term,meaning:v.meaning},m);const label=verdict==='exact'?'✓ Richtig':verdict==='content'?'✓ Inhaltlich richtig':'✗ Noch nicht richtig.';overlay.querySelector('#write-feedback').innerHTML=`<div class="notice"><b>${label}</b><br>Hinterlegte Antwort: ${esc(repairWordBreaks(v.meaning))}</div>`;const b=overlay.querySelector('#write-next');b.textContent=i===list.length-1?'Beenden':'Weiter';b.onclick=()=>{if(i===list.length-1)close();else{i++;draw();}}};
  } draw();
 }
 function startErrorTraining(){
