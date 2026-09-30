@@ -2456,24 +2456,25 @@ function shuffleProbe(a){
 }
 
 
-function errorStoreKey(month=exerciseMonth()){
- return `mainzahn_practice_errors_${state.user?.id||"guest"}_${now().getFullYear()}_${month}`;
+function errorStoreKey(month=exerciseMonth()){return `mainzahn_practice_errors_${state.user?.id||"guest"}_${now().getFullYear()}_${month}`;}
+function loadPracticeErrorsLocal(month=exerciseMonth()){try{return JSON.parse(localStorage.getItem(errorStoreKey(month))||"[]")}catch(e){return []}}
+function savePracticeErrorsLocal(items,month=exerciseMonth()){localStorage.setItem(errorStoreKey(month),JSON.stringify(items));}
+async function loadPracticeErrors(month=exerciseMonth()){
+ if(!state.user?.id||!sb)return loadPracticeErrorsLocal(month);
+ const {data,error}=await sb.from('practice_errors').select('term,meaning,month').eq('user_id',state.user.id).eq('month',month);
+ if(error){console.error(error);return loadPracticeErrorsLocal(month)}
+ const items=(data||[]).map(x=>({term:x.term,meaning:x.meaning}));savePracticeErrorsLocal(items,month);return items;
 }
-function loadPracticeErrors(month=exerciseMonth()){
- try{return JSON.parse(localStorage.getItem(errorStoreKey(month))||"[]")}catch(e){return []}
+async function addPracticeError(item,month=exerciseMonth()){
+ if(!state.user?.id||!sb)return;
+ await sb.from('practice_errors').delete().eq('user_id',state.user.id).eq('month',month).eq('term',item.term);
+ const {error}=await sb.from('practice_errors').insert({user_id:state.user.id,term:item.term,meaning:item.meaning,month});
+ if(error){console.error('Fehler konnte nicht gespeichert werden',error);return false}
+ return true;
 }
-function savePracticeErrors(items,month=exerciseMonth()){
- localStorage.setItem(errorStoreKey(month),JSON.stringify(items));
-}
-function addPracticeError(item,month=exerciseMonth()){
- const items=loadPracticeErrors(month);
- const key=tidy(item.term);
- const next=items.filter(x=>tidy(x.term)!==key);
- next.push({term:item.term,meaning:item.meaning});
- savePracticeErrors(next,month);
-}
-function removePracticeError(term,month=exerciseMonth()){
- savePracticeErrors(loadPracticeErrors(month).filter(x=>tidy(x.term)!==tidy(term)),month);
+async function removePracticeError(term,month=exerciseMonth()){
+ const {error}=await sb.from('practice_errors').delete().eq('user_id',state.user.id).eq('month',month).eq('term',term);
+ if(error){console.error('Fehler konnte nicht gelöscht werden',error);return false}return true;
 }
 
 function startProbeExam(){
@@ -2496,7 +2497,7 @@ function startProbeExam(){
    overlay.querySelector('#probe-back').onclick=()=>{if(idx>0){idx--;draw();}};
    overlay.querySelector('#probe-next').onclick=()=>{if(q.answer===null){alert('Bitte wähle zuerst eine Antwort aus.');return;}if(idx<questions.length-1){idx++;draw();}else results();};
  }
- function results(){
+ async function results(){
    const correct=questions.filter(q=>q.options[q.answer]===q.correct).length;
    questions.forEach(q=>{
      const chosen=q.answer===null?null:q.options[q.answer];
@@ -2548,12 +2549,12 @@ function startWritingPractice(){
  const close=()=>overlay.remove();
  function draw(){const v=list[i];overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Schreiben üben</h1><div>${monthName(m)} · ${i+1} von ${list.length}</div></div><button class="probe-btn probe-secondary" id="write-close">Zurück</button></div><div class="probe-card"><h2>${esc(repairWordBreaks(v.term))}</h2><p>Schreibe die Bedeutung:</p><input id="write-answer" type="text" autocomplete="off" placeholder="Antwort eingeben"><div id="write-feedback"></div><div class="probe-actions"><button class="probe-btn probe-secondary" id="write-show">Lösung zeigen</button><button class="probe-btn probe-primary" id="write-next">Prüfen</button></div></div></div>`;
  overlay.querySelector('#write-close').onclick=close; overlay.querySelector('#write-show').onclick=()=>{overlay.querySelector('#write-feedback').innerHTML=`<div class="notice"><b>Richtige Antwort:</b><br>${esc(repairWordBreaks(v.meaning))}</div>`};
- overlay.querySelector('#write-next').onclick=()=>{const a=tidy(overlay.querySelector('#write-answer').value),correct=tidy(v.meaning);if(!a){alert('Bitte gib zuerst eine Antwort ein.');return;}const verdict=evaluateWritingAnswer(a,v.meaning);if(verdict==='wrong')addPracticeError({term:v.term,meaning:v.meaning},m);const label=verdict==='exact'?'✓ Richtig':verdict==='content'?'✓ Inhaltlich richtig':'✗ Noch nicht richtig.';overlay.querySelector('#write-feedback').innerHTML=`<div class="notice"><b>${label}</b><br>Hinterlegte Antwort: ${esc(repairWordBreaks(v.meaning))}</div>`;const b=overlay.querySelector('#write-next');b.textContent=i===list.length-1?'Beenden':'Weiter';b.onclick=()=>{if(i===list.length-1)close();else{i++;draw();}}};
+ overlay.querySelector('#write-next').onclick=async()=>{const a=tidy(overlay.querySelector('#write-answer').value),correct=tidy(v.meaning);if(!a){alert('Bitte gib zuerst eine Antwort ein.');return;}const verdict=evaluateWritingAnswer(a,v.meaning);if(verdict==='wrong')await addPracticeError({term:v.term,meaning:v.meaning},m);const label=verdict==='exact'?'✓ Richtig':verdict==='content'?'✓ Inhaltlich richtig':'✗ Noch nicht richtig.';overlay.querySelector('#write-feedback').innerHTML=`<div class="notice"><b>${label}</b><br>Hinterlegte Antwort: ${esc(repairWordBreaks(v.meaning))}</div>`;const b=overlay.querySelector('#write-next');b.textContent=i===list.length-1?'Beenden':'Weiter';b.onclick=()=>{if(i===list.length-1)close();else{i++;draw();}}};
  } draw();
 }
-function startErrorTraining(){
+async function startErrorTraining(){
  const m=exerciseMonth();
- let errors=shuffleProbe(loadPracticeErrors(m));
+ let errors=shuffleProbe(await loadPracticeErrors(m));
  const overlay=document.createElement('div');overlay.className='probe-overlay';document.body.appendChild(overlay);
  const close=()=>overlay.remove();
 
@@ -2576,7 +2577,7 @@ function startErrorTraining(){
    const options=shuffleProbe([v.meaning,...wrong]);
    overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Fehlertraining</h1><div>${monthName(m)} · ${errors.length} Fehler übrig</div></div><button class="probe-btn probe-secondary" id="errors-close">Zurück</button></div><div class="probe-card"><h2>${esc(repairWordBreaks(v.term))}</h2><p>Welche Bedeutung ist richtig?</p><div class="probe-options">${options.map((o,j)=>`<button class="probe-option" data-error-answer="${j}">${esc(repairWordBreaks(o))}</button>`).join('')}</div><div id="error-feedback"></div></div></div>`;
    overlay.querySelector('#errors-close').onclick=close;
-   overlay.querySelectorAll('[data-error-answer]').forEach(el=>el.onclick=()=>{
+   overlay.querySelectorAll('[data-error-answer]').forEach(el=>el.onclick=async()=>{
      const picked=options[Number(el.dataset.errorAnswer)];
      if(tidy(picked)===tidy(v.meaning)){
        removePracticeError(v.term,m);
