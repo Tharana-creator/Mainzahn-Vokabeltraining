@@ -2534,12 +2534,33 @@ function evaluateWritingAnswer(answer,correct){
  if(!a)return "wrong";
  if(a===c)return "exact";
  if(levenshteinWriting(a,c)<=Math.max(2,Math.floor(c.length*.12)))return "content";
- const aw=a.split(" ").filter(w=>w.length>=3),cw=c.split(" ").filter(w=>w.length>=3);
+
+ const aw=a.split(" ").filter(w=>w.length>=3);
+ const cw=c.split(" ").filter(w=>w.length>=3);
  if(!cw.length)return "wrong";
+
+ // Wörter aus der Musterlösung, die in der eigenen Antwort sinngemäß vorkommen.
  let matched=0;
  for(const x of cw)if(aw.some(y=>writingWordMatch(y,x)))matched++;
- const coverage=matched/cw.length,precision=aw.length?matched/aw.length:0;
- if((cw.length<=2&&matched===cw.length)||(cw.length>=3&&coverage>=.70&&precision>=.45))return "content";
+ const coverage=matched/cw.length;
+ const precision=aw.length?matched/aw.length:0;
+
+ // Kurze Antworten müssen die wesentlichen Begriffe treffen. Bei längeren
+ // Musterlösungen reicht eine kompakte, inhaltlich passende Formulierung.
+ if(cw.length<=2 && matched===cw.length)return "content";
+ if(cw.length>=3 && coverage>=.55 && precision>=.40)return "content";
+
+ // Viele Lernende formulieren bewusst kürzer als die hinterlegte Definition.
+ // Wenn mindestens drei aussagekräftige Wörter der eigenen Antwort in der
+ // Musterlösung vorkommen und der Großteil der eigenen Aussage passt, gilt sie
+ // ebenfalls als inhaltlich richtig. So wird z.B. eine korrekte Kurzdefinition
+ // nicht bestraft, nur weil die Musterlösung ausführlicher formuliert ist.
+ const meaningfulAnswerWords=aw.filter(w=>w.length>=4);
+ let answerMatches=0;
+ for(const y of meaningfulAnswerWords)if(cw.some(x=>writingWordMatch(y,x)))answerMatches++;
+ const answerCoverage=meaningfulAnswerWords.length?answerMatches/meaningfulAnswerWords.length:0;
+ if(answerMatches>=3 && answerCoverage>=.60)return "content";
+
  return "wrong";
 }
 
