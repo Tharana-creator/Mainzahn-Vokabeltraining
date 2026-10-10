@@ -2418,9 +2418,49 @@ const isTrainer=()=>String(state.profile?.role||"").toLowerCase()==="ausbilder";
 function fail(t,d=""){app.innerHTML=`<main><div class="card"><h1>mainzahn</h1><div class="error"><b>${esc(t)}</b>${d?`<br><br>${esc(d)}`:""}</div></div></main>`}
 let sb;
 
+// Passwort-Wiederherstellung: Die Rückleitung muss auf diese veröffentlichte Seite zeigen.
+const recoveryFromLink = /(?:[?#&])type=recovery(?:[&#]|$)/.test(location.href) ||
+  new URLSearchParams(location.search).get('token_hash') && new URLSearchParams(location.search).get('type')==='recovery';
+let recoveryMode=Boolean(recoveryFromLink);
+function authMessage(message,kind='error'){
+ const el=document.getElementById('auth-message');
+ if(el){el.textContent=message;el.style.color=kind==='ok'?'#18794e':'#b42318';el.classList.remove('hidden');}
+}
+function resetPasswordScreen(){
+ recoveryMode=true;
+ app.innerHTML=`<main><div class="card login"><div class="logo">mainzahn</div><p class="muted">Azubi Vokabeltrainer</p><h2>Neues Passwort festlegen</h2><p>Bitte gib dein neues Passwort zweimal ein (mindestens 8 Zeichen).</p><form id="reset-form"><input id="new-password" type="password" minlength="8" autocomplete="new-password" placeholder="Neues Passwort" required><input id="confirm-password" type="password" minlength="8" autocomplete="new-password" placeholder="Passwort wiederholen" required><button type="submit">Passwort speichern</button></form><p id="auth-message" class="hidden" role="status"></p><p><button id="back-to-login" class="secondary" type="button">Zur Anmeldung</button></p></div></main>`;
+ document.getElementById('back-to-login').onclick=async()=>{recoveryMode=false;history.replaceState({},'',location.pathname);await sb.auth.signOut();loginScreen()};
+ document.getElementById('reset-form').onsubmit=async e=>{
+  e.preventDefault();const password=document.getElementById('new-password').value;
+  if(password!==document.getElementById('confirm-password').value)return authMessage('Die Passwörter stimmen nicht überein.');
+  const btn=e.currentTarget.querySelector('button');btn.disabled=true;
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){btn.disabled=false;return authMessage('Der Link ist abgelaufen oder ungültig. Bitte fordere eine neue E-Mail an.');}
+  const {error}=await sb.auth.updateUser({password});btn.disabled=false;
+  if(error)return authMessage(error.message);
+  recoveryMode=false;history.replaceState({},'',location.pathname);
+  await sb.auth.signOut();loginScreen();authMessage('Dein Passwort wurde geändert. Du kannst dich jetzt anmelden.','ok');
+ };
+}
 async function loginScreen(){
- app.innerHTML=`<main><div class="card login"><div class="logo">mainzahn</div><p class="muted">Azubi Vokabeltrainer</p><h2>Anmelden</h2><input id="email" type="email" placeholder="E-Mail"><input id="password" type="password" placeholder="Passwort"><button id="login">Anmelden</button><div id="err" class="error hidden"></div></div></main>`;
- document.getElementById("login").onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:email.value.trim(),password:password.value});if(error){err.textContent=error.message;err.classList.remove("hidden")}else await boot()};
+ app.innerHTML=`<main><div class="card login"><div class="logo">mainzahn</div><p class="muted">Azubi Vokabeltrainer</p><h2>Anmelden</h2><input id="email" type="email" autocomplete="email" placeholder="E-Mail"><input id="password" type="password" autocomplete="current-password" placeholder="Passwort"><button id="login">Anmelden</button><p><button id="forgot-password" class="secondary" type="button">Passwort vergessen?</button></p><p id="auth-message" class="hidden" role="status"></p></div></main>`;
+ document.getElementById('login').onclick=async()=>{
+  const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  if(error)authMessage(error.message);else await boot();
+ };
+ document.getElementById('forgot-password').onclick=()=>{
+  app.innerHTML=`<main><div class="card login"><div class="logo">mainzahn</div><h2>Passwort zurücksetzen</h2><p>Gib deine registrierte E-Mail-Adresse ein. Du erhältst einen Link, über den du ein neues Passwort festlegen kannst.</p><form id="forgot-form"><input id="recovery-email" type="email" autocomplete="email" placeholder="Deine E-Mail-Adresse" required><button type="submit">Reset-Link senden</button></form><p id="auth-message" class="hidden" role="status"></p><button class="secondary" id="return-login">Zurück zur Anmeldung</button></div></main>`;
+  document.getElementById('return-login').onclick=loginScreen;
+  document.getElementById('forgot-form').onsubmit=async e=>{
+   e.preventDefault();const btn=e.currentTarget.querySelector('button');btn.disabled=true;
+   const email=document.getElementById('recovery-email').value.trim();
+   const redirectTo=location.origin+location.pathname;
+   const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});btn.disabled=false;
+   if(error)return authMessage('E-Mail konnte nicht versendet werden: '+error.message);
+   authMessage('Falls ein Konto zu dieser E-Mail-Adresse existiert, erhältst du eine Nachricht. Bitte prüfe auch den Spam-Ordner.','ok');
+  };
+ };
 }
 
 function shell(content){
@@ -2711,6 +2751,7 @@ function render(){
 }
 
 async function boot(){
+ if(recoveryMode){resetPasswordScreen();return;}
  const {data,error}=await sb.auth.getSession();
  if(error)throw error;
  if(!data.session)return loginScreen();
@@ -2721,7 +2762,15 @@ async function boot(){
  state.profile=r.data;
  render();
 }
-try{const c=window.MAINZAHN_CONFIG;if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw new Error('config.js ist leer oder wird nicht gefunden.');const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');sb=createClient(c.supabaseUrl,c.supabaseAnonKey);await boot()}catch(e){fail('mainzahn konnte nicht gestartet werden',e.message)}
+try{const c=window.MAINZAHN_CONFIG;if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw new Error('config.js ist leer oder wird nicht gefunden.');const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');sb=createClient(c.supabaseUrl,c.supabaseAnonKey);
+ sb.auth.onAuthStateChange((event)=>{
+  if(event==='PASSWORD_RECOVERY'){recoveryMode=true;resetPasswordScreen();}
+ });
+ if(recoveryFromLink && new URLSearchParams(location.search).has('token_hash')){
+  const q=new URLSearchParams(location.search);
+  const {error}=await sb.auth.verifyOtp({token_hash:q.get('token_hash'),type:'recovery'});
+  resetPasswordScreen();if(error)authMessage('Der Link ist ungültig oder abgelaufen. Bitte fordere eine neue E-Mail an.');
+ }else await boot()}catch(e){fail('mainzahn konnte nicht gestartet werden',e.message)}
 
 </script>
 
