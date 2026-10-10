@@ -2419,8 +2419,10 @@ function fail(t,d=""){app.innerHTML=`<main><div class="card"><h1>mainzahn</h1><d
 let sb;
 
 // Passwort-Wiederherstellung: Die Rückleitung muss auf diese veröffentlichte Seite zeigen.
-const recoveryFromLink = /(?:[?#&])type=recovery(?:[&#]|$)/.test(location.href) ||
-  new URLSearchParams(location.search).get('token_hash') && new URLSearchParams(location.search).get('type')==='recovery';
+const recoveryParams = new URLSearchParams(location.search);
+const recoveryFromLink = recoveryParams.get('reset')==='1' ||
+  /(?:[?#&])type=recovery(?:[&#]|$)/.test(location.href) ||
+  (recoveryParams.has('token_hash') && recoveryParams.get('type')==='recovery');
 let recoveryMode=Boolean(recoveryFromLink);
 function authMessage(message,kind='error'){
  const el=document.getElementById('auth-message');
@@ -2455,7 +2457,7 @@ async function loginScreen(){
   document.getElementById('forgot-form').onsubmit=async e=>{
    e.preventDefault();const btn=e.currentTarget.querySelector('button');btn.disabled=true;
    const email=document.getElementById('recovery-email').value.trim();
-   const redirectTo=location.origin+location.pathname;
+   const redirectTo=location.origin+location.pathname+'?reset=1';
    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});btn.disabled=false;
    if(error)return authMessage('E-Mail konnte nicht versendet werden: '+error.message);
    authMessage('Falls ein Konto zu dieser E-Mail-Adresse existiert, erhältst du eine Nachricht. Bitte prüfe auch den Spam-Ordner.','ok');
@@ -2766,10 +2768,22 @@ try{const c=window.MAINZAHN_CONFIG;if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw
  sb.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY'){recoveryMode=true;resetPasswordScreen();}
  });
- if(recoveryFromLink && new URLSearchParams(location.search).has('token_hash')){
+ if(recoveryFromLink){
   const q=new URLSearchParams(location.search);
-  const {error}=await sb.auth.verifyOtp({token_hash:q.get('token_hash'),type:'recovery'});
-  resetPasswordScreen();if(error)authMessage('Der Link ist ungültig oder abgelaufen. Bitte fordere eine neue E-Mail an.');
+  let recoveryError=null;
+  if(q.has('token_hash') && q.get('type')==='recovery'){
+   const result=await sb.auth.verifyOtp({token_hash:q.get('token_hash'),type:'recovery'});
+   recoveryError=result.error;
+  }else if(q.has('code')){
+   const result=await sb.auth.exchangeCodeForSession(q.get('code'));
+   recoveryError=result.error;
+  }
+  // Bei Links mit #access_token verarbeitet supabase-js den Link automatisch.
+  const sessionResult=await sb.auth.getSession();
+  resetPasswordScreen();
+  if(recoveryError || sessionResult.error || !sessionResult.data.session){
+   authMessage('Der Wiederherstellungslink konnte nicht bestätigt werden oder ist abgelaufen. Bitte fordere einen neuen Link an.');
+  }
  }else await boot()}catch(e){fail('mainzahn konnte nicht gestartet werden',e.message)}
 
 </script>
