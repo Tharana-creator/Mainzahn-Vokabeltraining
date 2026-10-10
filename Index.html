@@ -1,0 +1,2799 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mainzahn – Azubi Vokabeltrainer</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--text:#172033;--muted:#64748b;--brand:#9b0018;--brand2:#65000f;--ok:#18794e;--danger:#b42318;--line:#dbe3ec}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(135deg,#65000f,#9b0018);color:#fff;padding:18px 24px;position:sticky;top:0;z-index:3}
+.top{max-width:1100px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{font-size:24px;font-weight:800} .sub{opacity:.85;font-size:13px}
+main{max-width:1100px;margin:24px auto;padding:0 18px} .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 4px 18px rgba(15,23,42,.05)}
+h1,h2,h3{margin-top:0} button,input,select{font:inherit} button{border:0;border-radius:10px;padding:11px 15px;cursor:pointer;background:var(--brand);color:#fff;font-weight:700} button.secondary{background:#e8eef4;color:var(--text)} button.danger{background:#b42318}
+input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;margin:6px 0 12px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px} .tabs button.active{background:#65000f}
+.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#e7f6ef;color:var(--ok);font-weight:700;font-size:12px}
+.exam{background:#fff5f3;border-color:#f4c7c1} .learn{background:#f3fbfd}
+.stat{font-size:30px;font-weight:800} .muted{color:var(--muted)} .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.progress{height:9px;background:#e6ebf0;border-radius:99px;overflow:hidden} .bar{height:100%;background:var(--brand);width:0}
+.choice{display:block;width:100%;margin:8px 0;text-align:left;background:#f0f4f7;color:var(--text);border:1px solid var(--line)}
+.choice.correct{background:#e8f7ef;border-color:#7ac79f} .choice.wrong{background:#fff0ee;border-color:#e49b91}
+.small{font-size:12px} .hidden{display:none!important} table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+.login{max-width:430px;margin:70px auto} .logo{font-size:42px;font-weight:900;color:var(--brand);margin-bottom:5px}
+.notice{padding:13px;border-radius:12px;background:#eef7fa;margin:12px 0} .locked{opacity:.55} .error-item{padding:12px 0;border-bottom:1px solid var(--line)} .error-item:last-child{border-bottom:0} .score-good{color:var(--ok);font-weight:800} .score-bad{color:var(--danger);font-weight:800}
+@media(max-width:600px){header{padding:14px} main{margin:16px auto} .brand{font-size:20px}}
+</style>
+<script src="config.js"></script></head>
+<body>
+<div id="app"></div>
+<script type="module">
+const MONTHS = [
+  [
+    {
+      "term": "Abrasion",
+      "meaning": "Abnutzung der Zähne, zum Beispiel durch Zähneknirschen oder starkes Kauen.",
+      "practice": "",
+      "prep": "",
+      "page": 1,
+      "month": 1
+    },
+    {
+      "term": "Abdruckpfosten",
+      "meaning": "Teil eines Implantats. Er hilft dabei, die genaue Position des Implantats für einen Abdruck zu übertragen.",
+      "practice": "Steri -\nSchrank\nNR 5 in\nentsprec\nhenden\nBoxen",
+      "prep": "Ultraschallbad - Bürsten - Einschweißen - Steri - in\ndie entsprechenden Boxen sortieren",
+      "page": 1,
+      "month": 1
+    },
+    {
+      "term": "absolute Trockenlegung",
+      "meaning": "Ein Zahn wird vollständig trocken gehalten, zum Beispiel mit einem Kofferdam.",
+      "practice": "",
+      "prep": "",
+      "page": 2,
+      "month": 1
+    },
+    {
+      "term": "absorbieren",
+      "meaning": "Etwas aufsaugen oder aufnehmen.",
+      "practice": "",
+      "prep": "",
+      "page": 2,
+      "month": 1
+    },
+    {
+      "term": "Abszess",
+      "meaning": "Eine Stelle im Gewebe, in der sich Eiter gesammelt hat.",
+      "practice": "",
+      "prep": "",
+      "page": 2,
+      "month": 1
+    },
+    {
+      "term": "Abutment (sprich",
+      "meaning": "Aufbau auf einem Implantat. Darauf kann später zum Beispiel eine Krone befestigt werden.",
+      "practice": "",
+      "prep": "",
+      "page": 2,
+      "month": 1
+    },
+    {
+      "term": "Acetylsalicysäure (ASS)",
+      "meaning": "Wirkstoff gegen Schmerzen. ASS beeinflusst auch die Blutgerinnung, zum Beispiel Aspirin.",
+      "practice": "",
+      "prep": "",
+      "page": 2,
+      "month": 1
+    },
+    {
+      "term": "Ad-Hoc",
+      "meaning": "Sofort oder spontan.",
+      "practice": "",
+      "prep": "",
+      "page": 2,
+      "month": 1
+    },
+    {
+      "term": "adhäsiv",
+      "meaning": "Haftend oder klebend.",
+      "practice": "",
+      "prep": "",
+      "page": 3,
+      "month": 1
+    },
+    {
+      "term": "Adhäsiv",
+      "meaning": "Ein Haftmittel. Es sorgt dafür, dass Materialien besser aneinander haften.",
+      "practice": "",
+      "prep": "",
+      "page": 3,
+      "month": 1
+    },
+    {
+      "term": "Adhäsiv-Technik",
+      "meaning": "Eine Technik, bei der eine Füllung mit dem Zahn verklebt wird.",
+      "practice": "",
+      "prep": "",
+      "page": 3,
+      "month": 1
+    },
+    {
+      "term": "Adstringens",
+      "meaning": "Ein Mittel, das Gewebe zusammenzieht und kleine Blutungen vermindern kann.",
+      "practice": "",
+      "prep": "",
+      "page": 4,
+      "month": 1
+    },
+    {
+      "term": "adjustieren",
+      "meaning": "Etwas passend einstellen, zum Beispiel eine Schiene einschleifen.",
+      "practice": "",
+      "prep": "",
+      "page": 4,
+      "month": 1
+    },
+    {
+      "term": "adjustierte gefräste Schiene",
+      "meaning": "Eine individuell angefertigte Kunststoffschiene. Sie wird zum Beispiel bei Zähneknirschen oder Kiefergelenkbeschwerden benutzt.",
+      "practice": "",
+      "prep": "",
+      "page": 4,
+      "month": 1
+    },
+    {
+      "term": "akut",
+      "meaning": "Plötzlich auftretend und oft stark.",
+      "practice": "",
+      "prep": "",
+      "page": 4,
+      "month": 1
+    },
+    {
+      "term": "Alginat",
+      "meaning": "Weiches Material, das für Zahnabdrücke verwendet wird.",
+      "practice": "",
+      "prep": "",
+      "page": 4,
+      "month": 1
+    },
+    {
+      "term": "A-Linie",
+      "meaning": "Grenze zwischen dem harten und dem weichen Gaumen.",
+      "practice": "",
+      "prep": "",
+      "page": 4,
+      "month": 1
+    },
+    {
+      "term": "Alveole (sprich",
+      "meaning": "Das Zahnfach im Kieferknochen, in dem die Zahnwurzel sitzt.",
+      "practice": "",
+      "prep": "",
+      "page": 5,
+      "month": 1
+    },
+    {
+      "term": "Alveolarfortsatz",
+      "meaning": "Teil des Kieferknochens, in dem die Zähne sitzen.",
+      "practice": "",
+      "prep": "",
+      "page": 5,
+      "month": 1
+    },
+    {
+      "term": "Alveolotomie",
+      "meaning": "Ein Teil des Kieferknochens wird chirurgisch entfernt.",
+      "practice": "",
+      "prep": "",
+      "page": 5,
+      "month": 1
+    },
+    {
+      "term": "Amalgam",
+      "meaning": "Metallisches Material für Zahnfüllungen.",
+      "practice": "",
+      "prep": "",
+      "page": 5,
+      "month": 1
+    },
+    {
+      "term": "Amoxicillin",
+      "meaning": "Ein Antibiotikum aus der Gruppe der Penicilline.",
+      "practice": "",
+      "prep": "",
+      "page": 5,
+      "month": 1
+    },
+    {
+      "term": "Anästhesie",
+      "meaning": "Betäubung. Ein Bereich wird unempfindlich gegen Schmerzen.",
+      "practice": "",
+      "prep": "",
+      "page": 5,
+      "month": 1
+    },
+    {
+      "term": "Analgetika",
+      "meaning": "Medikamente gegen Schmerzen.",
+      "practice": "",
+      "prep": "",
+      "page": 5,
+      "month": 1
+    }
+  ],
+  [
+    {
+      "term": "Anamnese",
+      "meaning": "Informationen über die Krankheiten, Beschwerden und medizinische Vorgeschichte eines Patienten.",
+      "practice": "",
+      "prep": "",
+      "page": 6,
+      "month": 2
+    },
+    {
+      "term": "Anastomose",
+      "meaning": "Natürliche Verbindung zwischen Blutgefäßen, Lymphgefäßen oder Nerven.",
+      "practice": "",
+      "prep": "",
+      "page": 6,
+      "month": 2
+    },
+    {
+      "term": "Anker",
+      "meaning": "Teil, der einen Zahnersatz befestigt oder hält.",
+      "practice": "",
+      "prep": "",
+      "page": 6,
+      "month": 2
+    },
+    {
+      "term": "anfinieren",
+      "meaning": "Die Ränder eines Goldinlays an den Zahn anpassen.",
+      "practice": "",
+      "prep": "",
+      "page": 6,
+      "month": 2
+    },
+    {
+      "term": "Antrum",
+      "meaning": "Kieferhöhle.",
+      "practice": "",
+      "prep": "",
+      "page": 6,
+      "month": 2
+    },
+    {
+      "term": "antibakteriell",
+      "meaning": "Wirkt gegen Bakterien.",
+      "practice": "",
+      "prep": "",
+      "page": 6,
+      "month": 2
+    },
+    {
+      "term": "Aphthe (sprich",
+      "meaning": "Kleine, schmerzhafte Stelle oder Wunde an der Mundschleimhaut.",
+      "practice": "",
+      "prep": "",
+      "page": 6,
+      "month": 2
+    },
+    {
+      "term": "apical, (Apex)",
+      "meaning": "An der Wurzelspitze. Der Apex ist die Spitze der Zahnwurzel.",
+      "practice": "",
+      "prep": "",
+      "page": 6,
+      "month": 2
+    },
+    {
+      "term": "Aerosol",
+      "meaning": "Sehr feine Flüssigkeitströpfchen in der Luft, zum Beispiel beim Bohren.",
+      "practice": "",
+      "prep": "",
+      "page": 7,
+      "month": 2
+    },
+    {
+      "term": "approximal",
+      "meaning": "Zum Nachbarzahn hin.",
+      "practice": "",
+      "prep": "",
+      "page": 7,
+      "month": 2
+    },
+    {
+      "term": "Applikation",
+      "meaning": "Ein Material oder Medikament auftragen oder einbringen.",
+      "practice": "",
+      "prep": "",
+      "page": 7,
+      "month": 2
+    },
+    {
+      "term": "Approximalflächen",
+      "meaning": "Zahnflächen, die zu den Nachbarzähnen zeigen.",
+      "practice": "",
+      "prep": "",
+      "page": 7,
+      "month": 2
+    },
+    {
+      "term": "Arkansas-Steinchen",
+      "meaning": "Kleiner Schleifkörper zum Glätten und Polieren.",
+      "practice": "",
+      "prep": "",
+      "page": 7,
+      "month": 2
+    },
+    {
+      "term": "Artikulation, artikulieren",
+      "meaning": "Bewegungen der Zahnreihen gegeneinander.",
+      "practice": "",
+      "prep": "",
+      "page": 8,
+      "month": 2
+    },
+    {
+      "term": "Artikulationspapier",
+      "meaning": "Farbiges Papier zum Prüfen, wo die Zähne aufeinanderbeißen.",
+      "practice": "",
+      "prep": "",
+      "page": 8,
+      "month": 2
+    },
+    {
+      "term": "Artikulator",
+      "meaning": "Gerät, das die Bewegungen von Ober- und Unterkiefer nachmacht.",
+      "practice": "",
+      "prep": "",
+      "page": 8,
+      "month": 2
+    },
+    {
+      "term": "Aspiration",
+      "meaning": "Ansaugen von Flüssigkeit oder Luft. Es kann auch bedeuten, dass ein Fremdkörper in die Atemwege gelangt.",
+      "practice": "",
+      "prep": "",
+      "page": 9,
+      "month": 2
+    },
+    {
+      "term": "asymptomatisch",
+      "meaning": "Es sind keine Beschwerden oder Symptome vorhanden.",
+      "practice": "",
+      "prep": "",
+      "page": 9,
+      "month": 2
+    },
+    {
+      "term": "atraumatisch",
+      "meaning": "Möglichst ohne Verletzung des Gewebes.",
+      "practice": "",
+      "prep": "",
+      "page": 9,
+      "month": 2
+    },
+    {
+      "term": "Atrophie",
+      "meaning": "Gewebe, Knochen oder ein Organ wird kleiner oder bildet sich zurück.",
+      "practice": "",
+      "prep": "",
+      "page": 9,
+      "month": 2
+    },
+    {
+      "term": "Attachement",
+      "meaning": "Verbindung oder Befestigung. In der Prothetik kann es ein Verbindungselement für Zahnersatz sein.",
+      "practice": "",
+      "prep": "",
+      "page": 10,
+      "month": 2
+    },
+    {
+      "term": "Attachmentverlust",
+      "meaning": "Der Halt eines Zahnes oder Implantats geht durch den Abbau des Zahnhalteapparats verloren.",
+      "practice": "",
+      "prep": "",
+      "page": 10,
+      "month": 2
+    },
+    {
+      "term": "Aufbaufüllung",
+      "meaning": "Füllung, mit der ein stark beschädigter Zahn aufgebaut wird, zum Beispiel vor einer Krone.",
+      "practice": "",
+      "prep": "",
+      "page": 10,
+      "month": 2
+    }
+  ],
+  [
+    {
+      "term": "Aufbiss-Schiene",
+      "meaning": "Kunststoffschiene, die meist nachts getragen wird, zum Beispiel bei Zähneknirschen.",
+      "practice": "",
+      "prep": "",
+      "page": 10,
+      "month": 3
+    },
+    {
+      "term": "Aufklappung",
+      "meaning": "Das Zahnfleisch wird bei einer Operation geöffnet, damit der Knochen darunter erreichbar ist.",
+      "practice": "",
+      "prep": "",
+      "page": 10,
+      "month": 3
+    },
+    {
+      "term": "AU",
+      "meaning": "Abkürzung für Arbeitsunfähigkeitsbescheinigung.",
+      "practice": "",
+      "prep": "",
+      "page": 10,
+      "month": 3
+    },
+    {
+      "term": "Autoklav",
+      "meaning": "Gerät zur Sterilisation von Instrumenten mit heißem Wasserdampf und Druck.",
+      "practice": "",
+      "prep": "",
+      "page": 11,
+      "month": 3
+    },
+    {
+      "term": "Biofilm",
+      "meaning": "Belag aus Bakterien auf den Zähnen, auch Plaque genannt.",
+      "practice": "",
+      "prep": "",
+      "page": 11,
+      "month": 3
+    },
+    {
+      "term": "Biflourid",
+      "meaning": "Fluoridpräparat zum Schutz empfindlicher Zähne und zur Kariesvorbeugung.",
+      "practice": "",
+      "prep": "",
+      "page": 11,
+      "month": 3
+    },
+    {
+      "term": "Bifurkation",
+      "meaning": "Stelle, an der sich die Wurzeln eines zweiwurzeligen Zahnes teilen.",
+      "practice": "",
+      "prep": "",
+      "page": 11,
+      "month": 3
+    },
+    {
+      "term": "Bio Oss",
+      "meaning": "Knochenersatzmaterial, das aus Rinderknochen hergestellt wird.",
+      "practice": "",
+      "prep": "",
+      "page": 11,
+      "month": 3
+    },
+    {
+      "term": "Biologische Breite",
+      "meaning": "Bereich des Zahnfleisches, der sich zwischen Knochen und Zahn befindet und für eine gesunde Befestigung wichtig ist.",
+      "practice": "",
+      "prep": "",
+      "page": 11,
+      "month": 3
+    },
+    {
+      "term": "Bissflügelaufnahmen",
+      "meaning": "Röntgenbild, mit dem besonders Karies zwischen den Zähnen erkannt werden kann.",
+      "practice": "",
+      "prep": "",
+      "page": 11,
+      "month": 3
+    },
+    {
+      "term": "Bissnahme",
+      "meaning": "Bestimmung, wie Ober- und Unterkiefer zueinander stehen.",
+      "practice": "",
+      "prep": "",
+      "page": 11,
+      "month": 3
+    },
+    {
+      "term": "Bleaching",
+      "meaning": "Aufhellen der Zähne.",
+      "practice": "",
+      "prep": "",
+      "page": 12,
+      "month": 3
+    },
+    {
+      "term": "Bohrschablone",
+      "meaning": "Schablone, die bei einer Implantation die richtige Position und Richtung des Implantats vorgibt.",
+      "practice": "",
+      "prep": "",
+      "page": 12,
+      "month": 3
+    },
+    {
+      "term": "Bruxismus",
+      "meaning": "Zähneknirschen oder starkes Zusammenpressen der Zähne.",
+      "practice": "",
+      "prep": "",
+      "page": 12,
+      "month": 3
+    },
+    {
+      "term": "bukkal",
+      "meaning": "Zur Wange hin.",
+      "practice": "",
+      "prep": "",
+      "page": 12,
+      "month": 3
+    },
+    {
+      "term": "Calxyl",
+      "meaning": "Calciumhydroxid-Paste zum Schutz einer geöffneten oder fast geöffneten Pulpa.",
+      "practice": "",
+      "prep": "",
+      "page": 12,
+      "month": 3
+    },
+    {
+      "term": "Caninus",
+      "meaning": "Eckzahn.",
+      "practice": "",
+      "prep": "",
+      "page": 13,
+      "month": 3
+    },
+    {
+      "term": "cervical",
+      "meaning": "Zum Zahnhals hin.",
+      "practice": "",
+      "prep": "",
+      "page": 13,
+      "month": 3
+    },
+    {
+      "term": "Cave",
+      "meaning": "Achtung oder Vorsicht.",
+      "practice": "",
+      "prep": "",
+      "page": 13,
+      "month": 3
+    },
+    {
+      "term": "chronisch",
+      "meaning": "Eine Erkrankung oder ein Problem besteht über längere Zeit.",
+      "practice": "",
+      "prep": "",
+      "page": 13,
+      "month": 3
+    },
+    {
+      "term": "Chlorhexidin",
+      "meaning": "Mittel gegen Bakterien im Mund.",
+      "practice": "",
+      "prep": "",
+      "page": 14,
+      "month": 3
+    },
+    {
+      "term": "Clindasaar",
+      "meaning": "Antibiotikum mit dem Wirkstoff Clindamycin.",
+      "practice": "",
+      "prep": "",
+      "page": 14,
+      "month": 3
+    },
+    {
+      "term": "Crista transversa",
+      "meaning": "Leiste auf der Kaufläche eines Zahnes, die zwei Höcker miteinander verbindet.",
+      "practice": "",
+      "prep": "",
+      "page": 14,
+      "month": 3
+    }
+  ],
+  [
+    {
+      "term": "CMD",
+      "meaning": "Abkürzung für Cranio-Mandibuläre Dysfunktion. Dabei gibt es Beschwerden an Kiefergelenken und Kaumuskeln, zum Beispiel Schmerzen oder Knacken.",
+      "practice": "",
+      "prep": "",
+      "page": 14,
+      "month": 4
+    },
+    {
+      "term": "Cover-denture-Prothese",
+      "meaning": "Prothese, die noch vorhandene Zähne oder Zahnwurzeln überdeckt.",
+      "practice": "",
+      "prep": "",
+      "page": 14,
+      "month": 4
+    },
+    {
+      "term": "Decubitus",
+      "meaning": "Druckstelle oder Druckgeschwür, zum Beispiel durch eine Prothese.",
+      "practice": "",
+      "prep": "",
+      "page": 15,
+      "month": 4
+    },
+    {
+      "term": "definitiv",
+      "meaning": "Endgültig.",
+      "practice": "",
+      "prep": "",
+      "page": 15,
+      "month": 4
+    },
+    {
+      "term": "Demineralisation",
+      "meaning": "Der Zahn verliert Mineralstoffe und wird dadurch schwächer.",
+      "practice": "",
+      "prep": "",
+      "page": 15,
+      "month": 4
+    },
+    {
+      "term": "Demenz",
+      "meaning": "Erkrankung, bei der unter anderem Gedächtnis und Denken zunehmend beeinträchtigt werden.",
+      "practice": "",
+      "prep": "",
+      "page": 15,
+      "month": 4
+    },
+    {
+      "term": "Dentitio difficilis",
+      "meaning": "Erschwerter Zahndurchbruch, häufig bei Weisheitszähnen.",
+      "practice": "",
+      "prep": "",
+      "page": 15,
+      "month": 4
+    },
+    {
+      "term": "Dentition",
+      "meaning": "Durchbruch und Entwicklung der Zähne.",
+      "practice": "",
+      "prep": "",
+      "page": 15,
+      "month": 4
+    },
+    {
+      "term": "Desmodont",
+      "meaning": "Gewebe zwischen Zahnwurzel und Knochen. Es hält den Zahn im Zahnfach.",
+      "practice": "",
+      "prep": "",
+      "page": 16,
+      "month": 4
+    },
+    {
+      "term": "Diabetes mellitus",
+      "meaning": "Zuckerkrankheit.",
+      "practice": "",
+      "prep": "",
+      "page": 16,
+      "month": 4
+    },
+    {
+      "term": "Desinfektion",
+      "meaning": "Keime werden so stark reduziert, dass eine Infektionsgefahr deutlich kleiner wird.",
+      "practice": "",
+      "prep": "",
+      "page": 16,
+      "month": 4
+    },
+    {
+      "term": "devital",
+      "meaning": "Der Zahn ist nicht mehr lebendig. Die Pulpa ist abgestorben.",
+      "practice": "",
+      "prep": "",
+      "page": 16,
+      "month": 4
+    },
+    {
+      "term": "Diagnose",
+      "meaning": "Feststellung, welche Krankheit oder welches Problem vorliegt.",
+      "practice": "",
+      "prep": "",
+      "page": 16,
+      "month": 4
+    },
+    {
+      "term": "Diastema",
+      "meaning": "Größere Lücke zwischen zwei Zähnen, häufig zwischen den oberen Schneidezähnen.",
+      "practice": "",
+      "prep": "",
+      "page": 16,
+      "month": 4
+    },
+    {
+      "term": "distal",
+      "meaning": "Von der Mitte des Zahnbogens weg.",
+      "practice": "",
+      "prep": "",
+      "page": 17,
+      "month": 4
+    },
+    {
+      "term": "Dolor",
+      "meaning": "Schmerz.",
+      "practice": "",
+      "prep": "",
+      "page": 17,
+      "month": 4
+    },
+    {
+      "term": "Dolor post extractionem",
+      "meaning": "Schmerzen nach einer Zahnentfernung.",
+      "practice": "",
+      "prep": "",
+      "page": 17,
+      "month": 4
+    },
+    {
+      "term": "Dontisolon",
+      "meaning": "Salbe für entzündete Bereiche des Zahnfleisches.",
+      "practice": "",
+      "prep": "",
+      "page": 17,
+      "month": 4
+    },
+    {
+      "term": "Dormicum",
+      "meaning": "Medikament zur Beruhigung und Sedierung.",
+      "practice": "",
+      "prep": "",
+      "page": 17,
+      "month": 4
+    },
+    {
+      "term": "Drehmomentschlüssel",
+      "meaning": "Instrument, mit dem Implantate oder Implantatteile mit einer genau bestimmten Kraft festgezogen werden.",
+      "practice": "",
+      "prep": "",
+      "page": 18,
+      "month": 4
+    },
+    {
+      "term": "doublieren",
+      "meaning": "Ein Modell kopieren beziehungsweise verdoppeln.",
+      "practice": "",
+      "prep": "",
+      "page": 18,
+      "month": 4
+    },
+    {
+      "term": "Druckdolenz",
+      "meaning": "Eine Stelle tut weh, wenn man darauf drückt.",
+      "practice": "",
+      "prep": "",
+      "page": 18,
+      "month": 4
+    },
+    {
+      "term": "Dynexan",
+      "meaning": "Medikament zur örtlichen Schmerzlinderung im Mund.",
+      "practice": "",
+      "prep": "",
+      "page": 19,
+      "month": 4
+    }
+  ],
+  [
+    {
+      "term": "Dycal",
+      "meaning": "Material mit Calciumhydroxid zum Schutz der Pulpa.",
+      "practice": "",
+      "prep": "",
+      "page": 19,
+      "month": 5
+    },
+    {
+      "term": "Effortil",
+      "meaning": "Medikament, das bei niedrigem Blutdruck eingesetzt werden kann.",
+      "practice": "",
+      "prep": "",
+      "page": 19,
+      "month": 5
+    },
+    {
+      "term": "Elektrotom",
+      "meaning": "Elektrisches Instrument zum Schneiden von Gewebe und zur Blutstillung.",
+      "practice": "",
+      "prep": "",
+      "page": 19,
+      "month": 5
+    },
+    {
+      "term": "Elongation",
+      "meaning": "Ein Zahn wächst weiter aus seinem Zahnfach heraus, weil zum Beispiel der Gegenzahn fehlt.",
+      "practice": "",
+      "prep": "",
+      "page": 20,
+      "month": 5
+    },
+    {
+      "term": "Emdogain",
+      "meaning": "Material, das die Heilung und Neubildung von Zahnhaltegewebe unterstützen kann.",
+      "practice": "",
+      "prep": "",
+      "page": 20,
+      "month": 5
+    },
+    {
+      "term": "Emphysem",
+      "meaning": "Luft oder Gas gelangt in das Gewebe und verursacht eine Schwellung.",
+      "practice": "",
+      "prep": "",
+      "page": 20,
+      "month": 5
+    },
+    {
+      "term": "Empress/emax",
+      "meaning": "Keramische Materialien beziehungsweise Verfahren zur Herstellung von Zahnersatz.",
+      "practice": "",
+      "prep": "",
+      "page": 20,
+      "month": 5
+    },
+    {
+      "term": "Epulis",
+      "meaning": "Gutartige Gewebewucherung am Zahnfleisch.",
+      "practice": "",
+      "prep": "",
+      "page": 20,
+      "month": 5
+    },
+    {
+      "term": "Empyem",
+      "meaning": "Ansammlung von Eiter in einem vorhandenen Hohlraum, zum Beispiel in der Kieferhöhle.",
+      "practice": "",
+      "prep": "",
+      "page": 20,
+      "month": 5
+    },
+    {
+      "term": "EMS – Handy/ Glycinpulver",
+      "meaning": "Pulverstrahlgerät zur professionellen Reinigung von Zähnen und Zahnfleischtaschen.",
+      "practice": "",
+      "prep": "",
+      "page": 20,
+      "month": 5
+    },
+    {
+      "term": "Endokarditis-Prophylaxe",
+      "meaning": "Vorbeugende Gabe eines Antibiotikums bei bestimmten Risikopatienten, um eine Infektion am Herzen zu verhindern.",
+      "practice": "",
+      "prep": "",
+      "page": 21,
+      "month": 5
+    },
+    {
+      "term": "Endodont",
+      "meaning": "Das Innere des Zahnes mit Pulpa und umgebendem Dentin.",
+      "practice": "",
+      "prep": "",
+      "page": 21,
+      "month": 5
+    },
+    {
+      "term": "enossal",
+      "meaning": "Im Knochen liegend.",
+      "practice": "",
+      "prep": "",
+      "page": 21,
+      "month": 5
+    },
+    {
+      "term": "Erythrozyten",
+      "meaning": "Rote Blutkörperchen. Sie transportieren vor allem Sauerstoff.",
+      "practice": "",
+      "prep": "",
+      "page": 21,
+      "month": 5
+    },
+    {
+      "term": "Eugenol",
+      "meaning": "Bestandteil von Nelkenöl. Es wird in der Zahnmedizin unter anderem in bestimmten Materialien verwendet.",
+      "practice": "",
+      "prep": "",
+      "page": 21,
+      "month": 5
+    },
+    {
+      "term": "Eugnathie",
+      "meaning": "Normale Stellung und Verzahnung der Zähne und Kiefer.",
+      "practice": "",
+      "prep": "",
+      "page": 21,
+      "month": 5
+    },
+    {
+      "term": "exkavieren",
+      "meaning": "Weiche, kariöse Zahnsubstanz entfernen.",
+      "practice": "",
+      "prep": "",
+      "page": 22,
+      "month": 5
+    },
+    {
+      "term": "Excision (auch Exzision)",
+      "meaning": "Herausschneiden z.B. des Lippenbändchens",
+      "practice": "",
+      "prep": "",
+      "page": 22,
+      "month": 5
+    },
+    {
+      "term": "extraoral",
+      "meaning": "Außerhalb des Mundes.",
+      "practice": "",
+      "prep": "",
+      "page": 22,
+      "month": 5
+    },
+    {
+      "term": "Exstirpation",
+      "meaning": "Vollständige Entfernung eines Gewebes oder Organs. Bei einer Wurzelbehandlung kann damit die Entfernung der Pulpa gemeint sein.",
+      "practice": "",
+      "prep": "",
+      "page": 22,
+      "month": 5
+    },
+    {
+      "term": "Extraktion",
+      "meaning": "Entfernung eines Zahnes.",
+      "practice": "",
+      "prep": "",
+      "page": 22,
+      "month": 5
+    },
+    {
+      "term": "Facette (sprich",
+      "meaning": "Verblendung aus Kunststoff oder Keramik.",
+      "practice": "",
+      "prep": "",
+      "page": 22,
+      "month": 5
+    },
+    {
+      "term": "Fibrom",
+      "meaning": "Gutartige Wucherung aus Bindegewebe.",
+      "practice": "",
+      "prep": "",
+      "page": 22,
+      "month": 5
+    }
+  ],
+  [
+    {
+      "term": "finieren",
+      "meaning": "Ränder einer Füllung glätten und sauber ausarbeiten.",
+      "practice": "",
+      "prep": "",
+      "page": 22,
+      "month": 6
+    },
+    {
+      "term": "Fluid",
+      "meaning": "Flüssiges Präparat, zum Beispiel zur Fluoridierung.",
+      "practice": "",
+      "prep": "",
+      "page": 22,
+      "month": 6
+    },
+    {
+      "term": "Fistel",
+      "meaning": "Kleiner Gang, durch den Eiter oder Flüssigkeit aus dem Gewebe abfließen kann.",
+      "practice": "",
+      "prep": "",
+      "page": 23,
+      "month": 6
+    },
+    {
+      "term": "Fissur",
+      "meaning": "Kleine Rille oder Vertiefung auf der Kaufläche eines Zahnes.",
+      "practice": "",
+      "prep": "",
+      "page": 23,
+      "month": 6
+    },
+    {
+      "term": "Fit checker",
+      "meaning": "Silikonmaterial zur Kontrolle, ob Zahnersatz richtig sitzt.",
+      "practice": "",
+      "prep": "",
+      "page": 23,
+      "month": 6
+    },
+    {
+      "term": "Frenulum",
+      "meaning": "Lippen- oder Wangenbändchen.",
+      "practice": "",
+      "prep": "",
+      "page": 23,
+      "month": 6
+    },
+    {
+      "term": "Frenulotomie",
+      "meaning": "Ein Lippen- oder Zungenbändchen wird chirurgisch durchtrennt.",
+      "practice": "",
+      "prep": "",
+      "page": 23,
+      "month": 6
+    },
+    {
+      "term": "Filtek",
+      "meaning": "Kompositmaterial für Zahnfüllungen.",
+      "practice": "",
+      "prep": "",
+      "page": 23,
+      "month": 6
+    },
+    {
+      "term": "Foramen mentale",
+      "meaning": "Öffnung im Unterkieferknochen, durch die Nerven und Blutgefäße austreten.",
+      "practice": "",
+      "prep": "",
+      "page": 23,
+      "month": 6
+    },
+    {
+      "term": "Fraktur",
+      "meaning": "Bruch, zum Beispiel eines Zahnes oder Knochens.",
+      "practice": "",
+      "prep": "",
+      "page": 24,
+      "month": 6
+    },
+    {
+      "term": "Fragment",
+      "meaning": "Abgebrochenes Stück.",
+      "practice": "",
+      "prep": "",
+      "page": 24,
+      "month": 6
+    },
+    {
+      "term": "Friktion",
+      "meaning": "Reibung. Sie kann zum Halt von Zahnersatz beitragen.",
+      "practice": "",
+      "prep": "",
+      "page": 24,
+      "month": 6
+    },
+    {
+      "term": "Kanibite",
+      "meaning": "Silikonmaterial zur Registrierung des Bisses.",
+      "practice": "",
+      "prep": "",
+      "page": 24,
+      "month": 6
+    },
+    {
+      "term": "Gangrän",
+      "meaning": "Abgestorbenes und meist bakteriell infiziertes Gewebe.",
+      "practice": "",
+      "prep": "",
+      "page": 24,
+      "month": 6
+    },
+    {
+      "term": "Gelatampt",
+      "meaning": "Kleiner Schwamm, der nach einer Zahnentfernung in die Wunde gelegt werden kann.",
+      "practice": "",
+      "prep": "",
+      "page": 24,
+      "month": 6
+    },
+    {
+      "term": "Gingiva",
+      "meaning": "Zahnfleisch.",
+      "practice": "",
+      "prep": "",
+      "page": 24,
+      "month": 6
+    },
+    {
+      "term": "Gingivaformer",
+      "meaning": "Implantatteil, das dem Zahnfleisch beim Abheilen eine passende Form gibt.",
+      "practice": "",
+      "prep": "",
+      "page": 25,
+      "month": 6
+    },
+    {
+      "term": "Gingivitis",
+      "meaning": "Entzündung des Zahnfleisches.",
+      "practice": "",
+      "prep": "",
+      "page": 25,
+      "month": 6
+    },
+    {
+      "term": "Glasionomer-Zement",
+      "meaning": "Zahnmedizinischer Zement, der gut am Zahn haftet.",
+      "practice": "",
+      "prep": "",
+      "page": 25,
+      "month": 6
+    },
+    {
+      "term": "Granulom",
+      "meaning": "Entzündlich verändertes Gewebe, zum Beispiel an einer Zahnwurzel.",
+      "practice": "",
+      "prep": "",
+      "page": 25,
+      "month": 6
+    },
+    {
+      "term": "H2O2-Spülung (Wasserstoffperoxid)",
+      "meaning": "Flüssigkeit mit desinfizierender und bleichender Wirkung.",
+      "practice": "",
+      "prep": "",
+      "page": 26,
+      "month": 6
+    },
+    {
+      "term": "Hämatom",
+      "meaning": "Bluterguss, zum Beispiel ein blauer Fleck.",
+      "practice": "",
+      "prep": "",
+      "page": 26,
+      "month": 6
+    },
+    {
+      "term": "Hämoglobin",
+      "meaning": "Roter Blutfarbstoff, der Sauerstoff transportiert.",
+      "practice": "",
+      "prep": "",
+      "page": 26,
+      "month": 6
+    }
+  ],
+  [
+    {
+      "term": "Harvard",
+      "meaning": "Phosphatzement zur Befestigung von Zahnersatz oder für bestimmte Füllungen.",
+      "practice": "",
+      "prep": "",
+      "page": 26,
+      "month": 7
+    },
+    {
+      "term": "Hedström-Feile",
+      "meaning": "Instrument zur Bearbeitung eines Wurzelkanals.",
+      "practice": "",
+      "prep": "",
+      "page": 26,
+      "month": 7
+    },
+    {
+      "term": "Hemisektion",
+      "meaning": "Bei einem mehrwurzeligen Zahn wird ein Teil des Zahnes mit einer Wurzel entfernt.",
+      "practice": "",
+      "prep": "",
+      "page": 26,
+      "month": 7
+    },
+    {
+      "term": "Herpes",
+      "meaning": "Virusinfektion, die zum Beispiel Bläschen an Lippen oder Schleimhaut verursachen kann.",
+      "practice": "",
+      "prep": "",
+      "page": 26,
+      "month": 7
+    },
+    {
+      "term": "Hyperplasie",
+      "meaning": "Es ist zu viel Gewebe vorhanden oder Gewebe hat sich vermehrt.",
+      "practice": "",
+      "prep": "",
+      "page": 27,
+      "month": 7
+    },
+    {
+      "term": "Hypoplasie",
+      "meaning": "Ein Gewebe oder Körperteil ist nicht vollständig entwickelt.",
+      "practice": "",
+      "prep": "",
+      "page": 27,
+      "month": 7
+    },
+    {
+      "term": "Ibuprofen",
+      "meaning": "Medikament gegen Schmerzen und Entzündungen.",
+      "practice": "",
+      "prep": "",
+      "page": 27,
+      "month": 7
+    },
+    {
+      "term": "Immediat(prothese)",
+      "meaning": "Prothese, die direkt nach der Entfernung von Zähnen eingesetzt werden kann.",
+      "practice": "",
+      "prep": "",
+      "page": 27,
+      "month": 7
+    },
+    {
+      "term": "impaktiert",
+      "meaning": "Ein Zahn steckt fest und kann nicht normal durchbrechen.",
+      "practice": "",
+      "prep": "",
+      "page": 27,
+      "month": 7
+    },
+    {
+      "term": "Impregum / thixoform engine",
+      "meaning": "Abdruckmaterial für sehr genaue Abformungen.",
+      "practice": "",
+      "prep": "",
+      "page": 27,
+      "month": 7
+    },
+    {
+      "term": "incisal (auch inzisal)",
+      "meaning": "Zur Schneidekante eines Frontzahnes hin.",
+      "practice": "",
+      "prep": "",
+      "page": 27,
+      "month": 7
+    },
+    {
+      "term": "Incisivus",
+      "meaning": "Schneidezahn.",
+      "practice": "",
+      "prep": "",
+      "page": 28,
+      "month": 7
+    },
+    {
+      "term": "Inzision",
+      "meaning": "Ein chirurgischer Schnitt, zum Beispiel um einen Abszess zu öffnen.",
+      "practice": "",
+      "prep": "",
+      "page": 28,
+      "month": 7
+    },
+    {
+      "term": "Inlay",
+      "meaning": "Im Labor hergestellte Einlagefüllung, zum Beispiel aus Keramik oder Gold.",
+      "practice": "",
+      "prep": "",
+      "page": 28,
+      "month": 7
+    },
+    {
+      "term": "Insuffizienz",
+      "meaning": "Ein Organ oder Körperteil arbeitet nicht ausreichend.",
+      "practice": "",
+      "prep": "",
+      "page": 29,
+      "month": 7
+    },
+    {
+      "term": "interdental",
+      "meaning": "Zwischen den Zähnen.",
+      "practice": "",
+      "prep": "",
+      "page": 29,
+      "month": 7
+    },
+    {
+      "term": "interforaminal",
+      "meaning": "Bereich im Unterkiefer zwischen den beiden Foramina mentalia.",
+      "practice": "",
+      "prep": "",
+      "page": 29,
+      "month": 7
+    },
+    {
+      "term": "Interims(prothese)",
+      "meaning": "Vorübergehende Prothese, bis der endgültige Zahnersatz fertig ist.",
+      "practice": "",
+      "prep": "",
+      "page": 29,
+      "month": 7
+    },
+    {
+      "term": "intraoral",
+      "meaning": "Im Mund.",
+      "practice": "",
+      "prep": "",
+      "page": 29,
+      "month": 7
+    },
+    {
+      "term": "Intraligamentäre Anästhesie",
+      "meaning": "Betäubungsmittel wird direkt in den schmalen Spalt zwischen Zahn und Knochen gespritzt.",
+      "practice": "",
+      "prep": "",
+      "page": 29,
+      "month": 7
+    },
+    {
+      "term": "intravenös",
+      "meaning": "In eine Vene.",
+      "practice": "",
+      "prep": "",
+      "page": 30,
+      "month": 7
+    },
+    {
+      "term": "inzidieren",
+      "meaning": "Einschneiden.",
+      "practice": "",
+      "prep": "",
+      "page": 30,
+      "month": 7
+    },
+    {
+      "term": "irreparabel",
+      "meaning": "Kann nicht mehr repariert oder wiederhergestellt werden.",
+      "practice": "",
+      "prep": "",
+      "page": 30,
+      "month": 7
+    }
+  ],
+  [
+    {
+      "term": "Isocillin",
+      "meaning": "Antibiotikum aus der Gruppe der Penicilline.",
+      "practice": "",
+      "prep": "",
+      "page": 30,
+      "month": 8
+    },
+    {
+      "term": "Karies profunda",
+      "meaning": "Sehr tiefe Karies, die nahe an der Pulpa liegt.",
+      "practice": "",
+      "prep": "",
+      "page": 30,
+      "month": 8
+    },
+    {
+      "term": "Kavität",
+      "meaning": "Loch oder vorbereiteter Bereich im Zahn, der zum Beispiel mit einer Füllung versorgt wird.",
+      "practice": "",
+      "prep": "",
+      "page": 30,
+      "month": 8
+    },
+    {
+      "term": "Kavo-flex",
+      "meaning": "Pulverstrahlgerät zur Entfernung hartnäckiger Beläge.",
+      "practice": "",
+      "prep": "",
+      "page": 30,
+      "month": 8
+    },
+    {
+      "term": "Ketac-cem",
+      "meaning": "Glasionomerzement zur dauerhaften Befestigung von Kronen oder Brücken.",
+      "practice": "",
+      "prep": "",
+      "page": 31,
+      "month": 8
+    },
+    {
+      "term": "Ketac-molar",
+      "meaning": "Glasionomerzement, der unter anderem für Füllungen und Aufbauten verwendet wird.",
+      "practice": "",
+      "prep": "",
+      "page": 31,
+      "month": 8
+    },
+    {
+      "term": "Kofferdam",
+      "meaning": "Gummituch, das einen oder mehrere Zähne vom restlichen Mund trennt und trocken hält.",
+      "practice": "",
+      "prep": "",
+      "page": 31,
+      "month": 8
+    },
+    {
+      "term": "Komposit",
+      "meaning": "Zahnfarbenes Kunststoff-Füllungsmaterial mit kleinen Füllkörpern.",
+      "practice": "",
+      "prep": "",
+      "page": 31,
+      "month": 8
+    },
+    {
+      "term": "koronal",
+      "meaning": "Zur Zahnkrone hin.",
+      "practice": "",
+      "prep": "",
+      "page": 31,
+      "month": 8
+    },
+    {
+      "term": "Konkrement",
+      "meaning": "Harter Zahnbelag unterhalb des Zahnfleischrandes.",
+      "practice": "",
+      "prep": "",
+      "page": 31,
+      "month": 8
+    },
+    {
+      "term": "konservierend",
+      "meaning": "Den Zahn erhaltend.",
+      "practice": "",
+      "prep": "",
+      "page": 32,
+      "month": 8
+    },
+    {
+      "term": "Konsilium",
+      "meaning": "Mehrere Ärzte beraten gemeinsam über einen Patienten.",
+      "practice": "",
+      "prep": "",
+      "page": 32,
+      "month": 8
+    },
+    {
+      "term": "Kürette",
+      "meaning": "Instrument zur Reinigung der Zahnwurzel unterhalb des Zahnfleisches.",
+      "practice": "",
+      "prep": "",
+      "page": 33,
+      "month": 8
+    },
+    {
+      "term": "Laser",
+      "meaning": "Gebündeltes, energiereiches Licht, das für verschiedene Behandlungen verwendet werden kann.",
+      "practice": "",
+      "prep": "",
+      "page": 33,
+      "month": 8
+    },
+    {
+      "term": "labial",
+      "meaning": "Zur Lippe hin.",
+      "practice": "",
+      "prep": "",
+      "page": 33,
+      "month": 8
+    },
+    {
+      "term": "Läsion",
+      "meaning": "Verletzung oder geschädigte Stelle.",
+      "practice": "",
+      "prep": "",
+      "page": 33,
+      "month": 8
+    },
+    {
+      "term": "Langenbeck-Haken",
+      "meaning": "Instrument, mit dem Gewebe bei einer Operation zur Seite gehalten wird.",
+      "practice": "",
+      "prep": "",
+      "page": 34,
+      "month": 8
+    },
+    {
+      "term": "Lappenplastik",
+      "meaning": "Chirurgische Technik, bei der Gewebe verschoben wird, um eine Wunde oder einen Defekt zu bedecken.",
+      "practice": "",
+      "prep": "",
+      "page": 34,
+      "month": 8
+    },
+    {
+      "term": "lege artis",
+      "meaning": "Fachgerecht und nach den medizinischen Regeln durchgeführt.",
+      "practice": "",
+      "prep": "",
+      "page": 34,
+      "month": 8
+    },
+    {
+      "term": "Laterotrusion",
+      "meaning": "Seitliche Bewegung des Unterkiefers.",
+      "practice": "",
+      "prep": "",
+      "page": 34,
+      "month": 8
+    },
+    {
+      "term": "Lentulo",
+      "meaning": "Spiralförmiges Instrument, mit dem Paste in einen Wurzelkanal eingebracht werden kann.",
+      "practice": "",
+      "prep": "",
+      "page": 34,
+      "month": 8
+    },
+    {
+      "term": "Leukozyten",
+      "meaning": "Weiße Blutkörperchen. Sie helfen dem Körper bei der Abwehr von Krankheitserregern.",
+      "practice": "",
+      "prep": "",
+      "page": 35,
+      "month": 8
+    },
+    {
+      "term": "Lindemann-Fräse",
+      "meaning": "Fräser zum Bearbeiten oder Entfernen von Knochen.",
+      "practice": "",
+      "prep": "",
+      "page": 35,
+      "month": 8
+    }
+  ],
+  [
+    {
+      "term": "lingual",
+      "meaning": "Zur Zunge hin.",
+      "practice": "",
+      "prep": "",
+      "page": 35,
+      "month": 9
+    },
+    {
+      "term": "Lunjatschek",
+      "meaning": "Instrument zum Einbringen oder Entfernen von Tamponaden.",
+      "practice": "",
+      "prep": "",
+      "page": 35,
+      "month": 9
+    },
+    {
+      "term": "Lymphozyten",
+      "meaning": "Bestimmte weiße Blutkörperchen, die zur Abwehr von Krankheitserregern gehören.",
+      "practice": "",
+      "prep": "",
+      "page": 35,
+      "month": 9
+    },
+    {
+      "term": "Luxation",
+      "meaning": "Ein Zahn wurde gelockert oder aus seiner normalen Position verschoben.",
+      "practice": "",
+      "prep": "",
+      "page": 36,
+      "month": 9
+    },
+    {
+      "term": "Mandrel",
+      "meaning": "Kleiner Halter, auf dem zum Beispiel Polierscheiben befestigt werden.",
+      "practice": "",
+      "prep": "",
+      "page": 36,
+      "month": 9
+    },
+    {
+      "term": "Marcumar",
+      "meaning": "Medikament, das die Blutgerinnung hemmt.",
+      "practice": "",
+      "prep": "",
+      "page": 36,
+      "month": 9
+    },
+    {
+      "term": "marginal",
+      "meaning": "Am Rand gelegen, zum Beispiel am Zahnfleischrand.",
+      "practice": "",
+      "prep": "",
+      "page": 37,
+      "month": 9
+    },
+    {
+      "term": "Matrize",
+      "meaning": "Dünnes Band, das beim Legen einer Füllung die Form des Zahnes unterstützt.",
+      "practice": "",
+      "prep": "",
+      "page": 37,
+      "month": 9
+    },
+    {
+      "term": "MAV",
+      "meaning": "Abkürzung für Mund-Antrum-Verbindung. Dabei besteht eine offene Verbindung zwischen Mund und Kieferhöhle.",
+      "practice": "",
+      "prep": "",
+      "page": 37,
+      "month": 9
+    },
+    {
+      "term": "mesial",
+      "meaning": "Zur Mitte des Zahnbogens hin.",
+      "practice": "",
+      "prep": "",
+      "page": 37,
+      "month": 9
+    },
+    {
+      "term": "Mehrschichttechnik",
+      "meaning": "Eine Kompositfüllung wird in mehreren dünnen Schichten aufgebaut.",
+      "practice": "",
+      "prep": "",
+      "page": 38,
+      "month": 9
+    },
+    {
+      "term": "Minimalinvasive Therapie",
+      "meaning": "Behandlung, bei der möglichst wenig gesundes Gewebe beschädigt oder entfernt wird.",
+      "practice": "",
+      "prep": "",
+      "page": 38,
+      "month": 9
+    },
+    {
+      "term": "Monobond S / Silan",
+      "meaning": "Mittel, das die Haftung zwischen Keramik und Kunststoff verbessert.",
+      "practice": "",
+      "prep": "",
+      "page": 38,
+      "month": 9
+    },
+    {
+      "term": "Molar",
+      "meaning": "Großer Backenzahn im hinteren Bereich.",
+      "practice": "",
+      "prep": "",
+      "page": 38,
+      "month": 9
+    },
+    {
+      "term": "Mukosa",
+      "meaning": "Schleimhaut.",
+      "practice": "",
+      "prep": "",
+      "page": 38,
+      "month": 9
+    },
+    {
+      "term": "Mukoperiostlappen",
+      "meaning": "Bei einer Operation gelöstes Stück aus Schleimhaut und Knochenhaut.",
+      "practice": "",
+      "prep": "",
+      "page": 39,
+      "month": 9
+    },
+    {
+      "term": "Myoarthropathie",
+      "meaning": "Erkrankung oder Beschwerden der Kaumuskulatur und der Kiefergelenke.",
+      "practice": "",
+      "prep": "",
+      "page": 40,
+      "month": 9
+    },
+    {
+      "term": "Natriumhypochlorid",
+      "meaning": "Desinfizierende Spüllösung für Wurzelkanäle.",
+      "practice": "",
+      "prep": "",
+      "page": 40,
+      "month": 9
+    },
+    {
+      "term": "Narkose",
+      "meaning": "Zustand, bei dem ein Patient durch Medikamente bewusstlos gemacht wird und keine Schmerzen wahrnimmt.",
+      "practice": "",
+      "prep": "",
+      "page": 40,
+      "month": 9
+    },
+    {
+      "term": "Nekrose",
+      "meaning": "Abgestorbenes Gewebe.",
+      "practice": "",
+      "prep": "",
+      "page": 40,
+      "month": 9
+    },
+    {
+      "term": "NEM",
+      "meaning": "Abkürzung für Nichtedelmetall.",
+      "practice": "",
+      "prep": "",
+      "page": 40,
+      "month": 9
+    },
+    {
+      "term": "Novalgin",
+      "meaning": "Medikament gegen starke Schmerzen.",
+      "practice": "",
+      "prep": "",
+      "page": 40,
+      "month": 9
+    },
+    {
+      "term": "obliteriert",
+      "meaning": "Stark verengt oder verschlossen, zum Beispiel ein Wurzelkanal.",
+      "practice": "",
+      "prep": "",
+      "page": 41,
+      "month": 9
+    }
+  ],
+  [
+    {
+      "term": "Ohnmacht",
+      "meaning": "Eine Person verliert für kurze Zeit das Bewusstsein und kann dabei umfallen.",
+      "practice": "",
+      "prep": "",
+      "page": 41,
+      "month": 10
+    },
+    {
+      "term": "okklusal",
+      "meaning": "Die Kaufläche der Seitenzähne betreffend.",
+      "practice": "",
+      "prep": "",
+      "page": 41,
+      "month": 10
+    },
+    {
+      "term": "Onlay (Overlay)",
+      "meaning": "Größere Einlagefüllung, die auch Teile der Kaufläche oder Zahnhöcker bedeckt.",
+      "practice": "",
+      "prep": "",
+      "page": 41,
+      "month": 10
+    },
+    {
+      "term": "OPG",
+      "meaning": "Großes Röntgenbild, auf dem beide Kiefer und viele Zähne gleichzeitig zu sehen sind.",
+      "practice": "",
+      "prep": "",
+      "page": 41,
+      "month": 10
+    },
+    {
+      "term": "Glasfaserstift von Komet",
+      "meaning": "Stift, der in einem wurzelbehandelten Zahn befestigt wird und den Zahnaufbau stabilisiert.",
+      "practice": "",
+      "prep": "",
+      "page": 41,
+      "month": 10
+    },
+    {
+      "term": "Okklusion",
+      "meaning": "Kontakt zwischen den Zähnen von Ober- und Unterkiefer.",
+      "practice": "",
+      "prep": "",
+      "page": 42,
+      "month": 10
+    },
+    {
+      "term": "Osteoporose",
+      "meaning": "Erkrankung, bei der die Knochen an Stabilität verlieren.",
+      "practice": "",
+      "prep": "",
+      "page": 42,
+      "month": 10
+    },
+    {
+      "term": "Osteotomie",
+      "meaning": "Chirurgisches Durchtrennen oder Entfernen von Knochen.",
+      "practice": "",
+      "prep": "",
+      "page": 42,
+      "month": 10
+    },
+    {
+      "term": "PA",
+      "meaning": "Abkürzung für Parodontitis-Behandlung.",
+      "practice": "",
+      "prep": "",
+      "page": 42,
+      "month": 10
+    },
+    {
+      "term": "palatinal",
+      "meaning": "Zum Gaumen hin.",
+      "practice": "",
+      "prep": "",
+      "page": 42,
+      "month": 10
+    },
+    {
+      "term": "Palpation",
+      "meaning": "Untersuchung durch Abtasten.",
+      "practice": "",
+      "prep": "",
+      "page": 42,
+      "month": 10
+    },
+    {
+      "term": "Papille",
+      "meaning": "Kleiner Zahnfleischbereich zwischen zwei Zähnen.",
+      "practice": "",
+      "prep": "",
+      "page": 43,
+      "month": 10
+    },
+    {
+      "term": "Paracetamol",
+      "meaning": "Medikament gegen Schmerzen und Fieber.",
+      "practice": "",
+      "prep": "",
+      "page": 43,
+      "month": 10
+    },
+    {
+      "term": "parapulpärer Stift",
+      "meaning": "Kleiner Metallstift, der früher zur Stabilisierung größerer Zahnaufbauten verwendet wurde.",
+      "practice": "",
+      "prep": "",
+      "page": 43,
+      "month": 10
+    },
+    {
+      "term": "Parästhesie",
+      "meaning": "Ein Bereich fühlt sich anders an, zum Beispiel taub, kribbelig oder pelzig.",
+      "practice": "",
+      "prep": "",
+      "page": 43,
+      "month": 10
+    },
+    {
+      "term": "Parodontitis apicalis",
+      "meaning": "Entzündung im Bereich der Wurzelspitze eines Zahnes.",
+      "practice": "",
+      "prep": "",
+      "page": 43,
+      "month": 10
+    },
+    {
+      "term": "Parodontitis marginalis",
+      "meaning": "Entzündung des Zahnhalteapparates, die am Zahnfleischrand beziehungsweise in der Zahnfleischtasche beginnt.",
+      "practice": "",
+      "prep": "",
+      "page": 43,
+      "month": 10
+    },
+    {
+      "term": "Parodontitis marginalis profunda",
+      "meaning": "Stark fortgeschrittene Parodontitis mit tiefen Zahnfleischtaschen.",
+      "practice": "",
+      "prep": "",
+      "page": 43,
+      "month": 10
+    },
+    {
+      "term": "Parodontitis marginalis superficialis",
+      "meaning": "Weniger tief fortgeschrittene Form der Parodontitis.",
+      "practice": "",
+      "prep": "",
+      "page": 44,
+      "month": 10
+    },
+    {
+      "term": "Parodontose",
+      "meaning": "Veralteter beziehungsweise umgangssprachlicher Begriff für Parodontitis.",
+      "practice": "",
+      "prep": "",
+      "page": 44,
+      "month": 10
+    },
+    {
+      "term": "Parodontitis",
+      "meaning": "Entzündliche Erkrankung des Zahnhalteapparates. Dabei können Zahnfleisch und Knochen abgebaut werden.",
+      "practice": "",
+      "prep": "",
+      "page": 44,
+      "month": 10
+    },
+    {
+      "term": "Patrize",
+      "meaning": "Ein Teil eines Verbindungssystems für herausnehmbaren Zahnersatz. Sie passt in das Gegenstück, die Matrize.",
+      "practice": "",
+      "prep": "",
+      "page": 44,
+      "month": 10
+    },
+    {
+      "term": "Periost",
+      "meaning": "Knochenhaut. Dünne Gewebeschicht, die den Knochen außen bedeckt.",
+      "practice": "",
+      "prep": "",
+      "page": 44,
+      "month": 10
+    }
+  ],
+  [
+    {
+      "term": "Perio Chip",
+      "meaning": "Kleiner Chip mit Chlorhexidin, der in eine Zahnfleischtasche gelegt wird.",
+      "practice": "",
+      "prep": "",
+      "page": 44,
+      "month": 11
+    },
+    {
+      "term": "Prämolar",
+      "meaning": "Kleiner Backenzahn zwischen Eckzahn und Molaren.",
+      "practice": "",
+      "prep": "",
+      "page": 45,
+      "month": 11
+    },
+    {
+      "term": "Progenie",
+      "meaning": "Der Unterkiefer steht im Verhältnis zum Oberkiefer zu weit vorne.",
+      "practice": "",
+      "prep": "",
+      "page": 45,
+      "month": 11
+    },
+    {
+      "term": "Prognathie",
+      "meaning": "Der Oberkiefer steht im Verhältnis zum Unterkiefer zu weit vorne.",
+      "practice": "",
+      "prep": "",
+      "page": 45,
+      "month": 11
+    },
+    {
+      "term": "KaniTemp",
+      "meaning": "Kunststoff zur direkten Herstellung von provisorischem Zahnersatz.",
+      "practice": "",
+      "prep": "",
+      "page": 45,
+      "month": 11
+    },
+    {
+      "term": "Protrusion",
+      "meaning": "Bewegung des Unterkiefers nach vorne.",
+      "practice": "",
+      "prep": "",
+      "page": 45,
+      "month": 11
+    },
+    {
+      "term": "Pellet",
+      "meaning": "Kleines Kügelchen oder kleines Schaumstoffstück, zum Beispiel zum Auftragen von Medikamenten.",
+      "practice": "",
+      "prep": "",
+      "page": 46,
+      "month": 11
+    },
+    {
+      "term": "Perforation",
+      "meaning": "Ungewollte oder gezielte Öffnung beziehungsweise Durchbohrung.",
+      "practice": "",
+      "prep": "",
+      "page": 46,
+      "month": 11
+    },
+    {
+      "term": "Periimplantitis",
+      "meaning": "Entzündung des Gewebes und Knochens um ein Implantat.",
+      "practice": "",
+      "prep": "",
+      "page": 46,
+      "month": 11
+    },
+    {
+      "term": "Perkussion",
+      "meaning": "Ein Zahn wird vorsichtig beklopft, um zu prüfen, ob er schmerzempfindlich ist.",
+      "practice": "",
+      "prep": "",
+      "page": 46,
+      "month": 11
+    },
+    {
+      "term": "permanent",
+      "meaning": "Dauerhaft oder bleibend.",
+      "practice": "",
+      "prep": "",
+      "page": 46,
+      "month": 11
+    },
+    {
+      "term": "persistieren",
+      "meaning": "Etwas bleibt bestehen und verschwindet nicht.",
+      "practice": "",
+      "prep": "",
+      "page": 46,
+      "month": 11
+    },
+    {
+      "term": "Pilotbohrer",
+      "meaning": "Erster Bohrer bei einer Implantation. Er bestimmt die Richtung und Tiefe.",
+      "practice": "",
+      "prep": "",
+      "page": 46,
+      "month": 11
+    },
+    {
+      "term": "Plugger",
+      "meaning": "Instrument zum Verdichten von Material bei einer Wurzelkanalfüllung.",
+      "practice": "",
+      "prep": "",
+      "page": 46,
+      "month": 11
+    },
+    {
+      "term": "Polymerisationslampe",
+      "meaning": "Lampe mit speziellem Licht, mit dem Komposit ausgehärtet wird.",
+      "practice": "",
+      "prep": "",
+      "page": 47,
+      "month": 11
+    },
+    {
+      "term": "Prädilektionsstellen",
+      "meaning": "Stellen am Zahn, an denen besonders häufig Karies entsteht.",
+      "practice": "",
+      "prep": "",
+      "page": 47,
+      "month": 11
+    },
+    {
+      "term": "Präparation",
+      "meaning": "Ein Zahn wird mit Instrumenten vorbereitet, zum Beispiel für eine Krone oder Füllung.",
+      "practice": "",
+      "prep": "",
+      "page": 48,
+      "month": 11
+    },
+    {
+      "term": "Pus, purulent",
+      "meaning": "Pus bedeutet Eiter. Purulent bedeutet eitrig.",
+      "practice": "",
+      "prep": "",
+      "page": 48,
+      "month": 11
+    },
+    {
+      "term": "Quadrant",
+      "meaning": "Ein Viertel des Gebisses.",
+      "practice": "",
+      "prep": "",
+      "page": 48,
+      "month": 11
+    },
+    {
+      "term": "Quickwert/ INR- Wert",
+      "meaning": "Blutwerte, die zeigen, wie schnell beziehungsweise wie langsam das Blut gerinnt.",
+      "practice": "",
+      "prep": "",
+      "page": 48,
+      "month": 11
+    },
+    {
+      "term": "radikulär",
+      "meaning": "Die Zahnwurzel betreffend.",
+      "practice": "",
+      "prep": "",
+      "page": 49,
+      "month": 11
+    },
+    {
+      "term": "Radix",
+      "meaning": "Zahnwurzel.",
+      "practice": "",
+      "prep": "",
+      "page": 49,
+      "month": 11
+    },
+    {
+      "term": "Radix-Anker",
+      "meaning": "Stift, der in einer Zahnwurzel befestigt wird und einen Zahnaufbau stabilisiert.",
+      "practice": "",
+      "prep": "",
+      "page": 49,
+      "month": 11
+    }
+  ],
+  [
+    {
+      "term": "Radix relicta",
+      "meaning": "Im Kiefer verbliebener Rest einer Zahnwurzel.",
+      "practice": "",
+      "prep": "",
+      "page": 49,
+      "month": 12
+    },
+    {
+      "term": "Reamer",
+      "meaning": "Instrument zur Bearbeitung und Erweiterung eines Wurzelkanals.",
+      "practice": "",
+      "prep": "",
+      "page": 49,
+      "month": 12
+    },
+    {
+      "term": "Reflux",
+      "meaning": "Magensäure oder Mageninhalt fließt zurück in die Speiseröhre.",
+      "practice": "",
+      "prep": "",
+      "page": 49,
+      "month": 12
+    },
+    {
+      "term": "retrograd",
+      "meaning": "Von der entgegengesetzten Seite. Bei einer Wurzelspitzenresektion zum Beispiel von der Wurzelspitze aus.",
+      "practice": "",
+      "prep": "",
+      "page": 49,
+      "month": 12
+    },
+    {
+      "term": "Rezidiv, rezidivierend",
+      "meaning": "Eine Krankheit oder ein Problem kommt wieder.",
+      "practice": "",
+      "prep": "",
+      "page": 50,
+      "month": 12
+    },
+    {
+      "term": "Reinfektion",
+      "meaning": "Erneute Infektion mit einem Krankheitserreger.",
+      "practice": "",
+      "prep": "",
+      "page": 50,
+      "month": 12
+    },
+    {
+      "term": "relative Trockenlegung",
+      "meaning": "Ein Zahn wird zum Beispiel mit Watterollen möglichst trocken gehalten.",
+      "practice": "",
+      "prep": "",
+      "page": 51,
+      "month": 12
+    },
+    {
+      "term": "Remineralisation",
+      "meaning": "Mineralstoffe werden wieder in den Zahnschmelz eingelagert.",
+      "practice": "",
+      "prep": "",
+      "page": 51,
+      "month": 12
+    },
+    {
+      "term": "Resektion",
+      "meaning": "Ein krankes Stück Gewebe oder ein Teil eines Organs wird operativ entfernt.",
+      "practice": "",
+      "prep": "",
+      "page": 51,
+      "month": 12
+    },
+    {
+      "term": "retiniert",
+      "meaning": "Ein Zahn bleibt im Kiefer und bricht nicht vollständig durch.",
+      "practice": "",
+      "prep": "",
+      "page": 51,
+      "month": 12
+    },
+    {
+      "term": "Rezession",
+      "meaning": "Das Zahnfleisch geht zurück und die Zahnwurzel kann sichtbar werden.",
+      "practice": "",
+      "prep": "",
+      "page": 51,
+      "month": 12
+    },
+    {
+      "term": "Root Planing",
+      "meaning": "Glätten und Reinigen der Zahnwurzel bei einer Parodontitis-Behandlung.",
+      "practice": "",
+      "prep": "",
+      "page": 52,
+      "month": 12
+    },
+    {
+      "term": "Scaler",
+      "meaning": "Instrument zum Entfernen von Zahnstein oberhalb des Zahnfleisches.",
+      "practice": "",
+      "prep": "",
+      "page": 52,
+      "month": 12
+    },
+    {
+      "term": "Saliva",
+      "meaning": "Speichel.",
+      "practice": "",
+      "prep": "",
+      "page": 52,
+      "month": 12
+    },
+    {
+      "term": "Sanierung",
+      "meaning": "Krankheiten und Schäden werden behandelt und beseitigt.",
+      "practice": "",
+      "prep": "",
+      "page": 52,
+      "month": 12
+    },
+    {
+      "term": "Säure-Ätz-Technik",
+      "meaning": "Die Zahnoberfläche wird mit Säure vorbereitet, damit eine Füllung besser haften kann.",
+      "practice": "",
+      "prep": "",
+      "page": 52,
+      "month": 12
+    },
+    {
+      "term": "Sealer",
+      "meaning": "Material zum Abdichten eines Wurzelkanals bei der Wurzelfüllung.",
+      "practice": "",
+      "prep": "",
+      "page": 53,
+      "month": 12
+    },
+    {
+      "term": "sedieren",
+      "meaning": "Einen Patienten mit Medikamenten beruhigen.",
+      "practice": "",
+      "prep": "",
+      "page": 53,
+      "month": 12
+    },
+    {
+      "term": "Sharpey’sche Fasern",
+      "meaning": "Kleine Fasern, die den Zahn mit dem Knochen verbinden.",
+      "practice": "",
+      "prep": "",
+      "page": 53,
+      "month": 12
+    },
+    {
+      "term": "Sinuslift externer",
+      "meaning": "Knochenaufbau im Oberkiefer mit einem seitlichen Zugang zur Kieferhöhle.",
+      "practice": "",
+      "prep": "",
+      "page": 54,
+      "month": 12
+    },
+    {
+      "term": "Sinuslift interner",
+      "meaning": "Knochenaufbau im Oberkiefer direkt über der Stelle, an der ein Implantat eingesetzt wird.",
+      "practice": "",
+      "prep": "",
+      "page": 54,
+      "month": 12
+    },
+    {
+      "term": "Sinus maxillaris",
+      "meaning": "Kieferhöhle.",
+      "practice": "",
+      "prep": "",
+      "page": 54,
+      "month": 12
+    },
+    {
+      "term": "Sinusitis (maxillaris)",
+      "meaning": "Entzündung der Kieferhöhle.",
+      "practice": "",
+      "prep": "",
+      "page": 55,
+      "month": 12
+    }
+  ]
+];
+const TOTAL = 277;
+const app=document.getElementById("app");
+const state={user:null,profile:null,tab:"home",learn:0,learnMode:null,exam:null,trainerResults:[],trainerLoading:false};
+const names=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+const tidy=s=>{
+  let t=String(s??"").replace(/\r/g,"");
+  const fixes=[
+    ["Gegenzah\\nn","Gegenzahn"],["Kaufläche\\nn","Kauflächen"],
+    ["Implantats\\nystems","Implantatsystems"],["Implantatk\\nörper","Implantatkörper"],
+    ["Implantata\\nufbau","Implantataufbau"],["entsprec\\nhenden","entsprechenden"],
+    ["verschluc\\nken","verschlucken"],["Ansammlu\\nng","Ansammlung"],
+    ["Abflußmög\\nlichkeit","Abflußmöglichkeit"],["Implantata\\nufbauteil","Implantataufbauteil"],
+    ["Acetylsalicysäur\\ne","Acetylsalicysäure"],["Schmerzm\\nitteln","Schmerzmitteln"],
+    ["Schmerzm\\nittel","Schmerzmittel"],["blutverdün\\nnender","blutverdünnender"],
+    ["Haftvermitt\\nler","Haftvermittler"],["Abdrucklöf\\nfel","Abdrucklöffel"],
+    ["aufgetrage\\nn","aufgetragen"],["Abdruckmi\\nttel","Abdruckmittel"],
+    ["Unterfütter\\nungsabdru\\nck","Unterfütterungsabdruck"],
+    ["Befestigun\\ng","Befestigung"],["Zahnschm\\nelz","Zahnschmelz"],
+    ["Anwendun\\ng","Anwendung"],["Schleimhä\\nute","Schleimhäute"],
+    ["Einschleif\\nen","Einschleifen"],["Kunststoffs\\nchiene","Kunststoffschiene"],
+    ["verschiede\\nne","verschiedene"],["therapeutis\\nche","therapeutische"],
+    ["insbesond\\nere","insbesondere"],["Kiefergele\\nnksbeschw\\nerden","Kiefergelenksbeschwerden"],
+    ["Eckzahnfü\\nhrung","Eckzahnführung"],["Abdruckm\\naterial","Abdruckmaterial"],
+    ["Behandlun\\ng","Behandlung"],["Behandlun\\ngsmethode","Behandlungsmethode"],
+    ["Haftfähigk\\neit","Haftfähigkeit"],["Kunstoffkle\\nbern","Kunstoffklebern"],
+    ["keramisch\\nen","keramischen"],["Oberfläche\\nn","Oberflächen"],
+    ["Backenzäh\\nne","Backenzähne"],["Schleimha\\nut","Schleimhaut"],
+    ["Auskleidun\\ng","Auskleidung"],["Körperobe\\nrflächen","Körperoberflächen"],
+    ["Mukoperiostlapp\\nen","Mukoperiostlappen"],["Aufklappu\\nng","Aufklappung"],
+    ["Kiefergele\\nnk","Kiefergelenk"],["Kaumuskul\\natur","Kaumuskulatur"],
+    ["Natriumhypochlo\\nrid","Natriumhypochlorid"],["gangränös\\ne","gangränöse"],
+    ["Wurzelkan\\näle","Wurzelkanäle"],["Schmerza\\nusschaltun\\ng","Schmerzausschaltung"],
+    ["abgestorb\\nenes","abgestorbenes"],["mangelnde\\nr","mangelnder"],
+    ["Blutversor\\ngung","Blutversorgung"],["Nichtedel\\nmetall","Nichtedelmetall"],
+    ["Schmerze\\nn","Schmerzen"],["verschloss\\nen","verschlossen"],
+    ["anzutreffe\\nn","anzutreffen"],["betreffend\\ne","betreffende"],
+    ["Bewusstse\\ninsverlust","Bewusstseinsverlust"],["Prämolare\\nn","Prämolaren"],
+    ["einbezoge\\nner","einbezogener"],["Kaukante\\nnschutz","Kaukantenschutz"],
+    ["Orthopant\\nomogram\\nm","Orthopantomogramm"],["Röntgenübersichtsauf\\nnahme","Röntgenübersichtsaufnahme"],
+    ["Wurzelkan\\nal","Wurzelkanal"],["eingebrach\\nt","eingebracht"],
+    ["Knochens\\nubstanz","Knochensubstanz"],["Vergrößer\\nung","Vergrößerung"],
+    ["Markräum\\ne","Markräume"],["vorkomme\\nnd","vorkommend"],
+    ["Durchtrenn\\nung","Durchtrennung"],["Parodontiti\\ns","Parodontitis"],
+    ["Untersuch\\nung","Untersuchung"],["interdental\\ne","interdentale"],
+    ["Zahnfleisc\\nhspitze","Zahnfleischspitze"],["Schwange\\nren","Schwangeren"],
+    ["Kinder\\nn","Kindern"],["Metallstiftc\\nhen","Metallstiftchen"],
+    ["benachbar\\nten","benachbarten"],["eingeschra\\nubt","eingeschraubt"],
+    ["Kompositf\\nüllungen","Kompositfüllungen"],["Missempfi\\nndung","Missempfindung"],
+    ["vermidert\\ne","verminderte"],["Gefühlswa\\nhrnehmun\\ng","Gefühlswahrnehmung"],
+    ["Teilp\\nroth\\nese\\nn","Teilprothesen"]
+  ];
+  for(const [a,b] of fixes)t=t.split(a).join(b);
+  return t.replace(/\s*\n\s*/g," ").replace(/\s{2,}/g," ").trim();
+};
+// PDF-Zeilenumbrüche haben teilweise Wörter mitten im Wort getrennt.
+// Diese Funktion entfernt die sichtbaren OCR/PDF-Lücken auch bei alten Supabase-Ergebnissen.
+const repairWordBreaks=s=>{
+  // Erst die ORIGINALEN Zeilenumbrüche behandeln, bevor tidy() sie in Leerzeichen umwandelt.
+  // In der importierten PDF wurden lange Wörter häufig mitten im Wort umgebrochen.
+  let raw=String(s??"");
+  raw=raw.replace(/([A-Za-zÄÖÜäöüß]{5,})\n([A-Za-zÄÖÜäöüß]{1,5})(?=\b)/g,"$1$2");
+  // Häufige längere PDF-Worttrennungen, bei denen beide Teile > 5 Zeichen lang sind.
+  const rawFixes={
+    "Speichelpr\noduktion":"Speichelproduktion",
+    "benachbar\nter":"benachbarter",
+    "verschiede\nnen":"verschiedenen",
+    "beschichte\nten":"beschichteten",
+    "unbeschic\nhteten":"unbeschichteten",
+    "ansteigend\ne":"ansteigende",
+    "Zahnzwisc\nhenräume":"Zahnzwischenräume",
+    "Brückengli\nedern":"Brückengliedern",
+    "provisorisc\nher":"provisorischer",
+    "vollkermisc\nhen":"vollkeramischen",
+    "Instrument\narium":"Instrumentarium",
+    "chirurgisch\ne":"chirurgische",
+    "maschinell\nen":"maschinellen",
+    "Aufbereitu\nng":"Aufbereitung",
+    "integrierte\nm":"integriertem",
+    "Vollkerami\nsche":"Vollkeramische",
+    "Verblendsc\nhale":"Verblendschale",
+    "Wurzelbeh\nandlungen":"Wurzelbehandlungen",
+    "Nahtmateri\nal":"Nahtmaterial",
+    "Aufwachst\nechnik":"Aufwachstechnik",
+    "Simulation\neiner":"Simulation einer",
+    "prothetisch\nen":"prothetischen",
+    "Zahnfehlst\ellungen":"Zahnfehlstellungen",
+    "Ausräume\nn":"Ausräumen",
+    "Wurzelspit\nze":"Wurzelspitze",
+    "beginnend\nen":"beginnenden",
+    "Mundtrock\nenheit":"Mundtrockenheit",
+    "Medikame\nnte":"Medikamente",
+    "Zystenbalg\ns":"Zystenbalgs",
+    "benachbar\nter":"benachbarter",
+    "Körperhöhl\nen":"Körperhöhlen"
+  };
+  for(const [a,b] of Object.entries(rawFixes)) raw=raw.split(a).join(b);
+  let t=tidy(raw);
+  const fixes={
+    "Teilprothes e":"Teilprothese","Geschiebe n":"Geschieben","abgestorb enes":"abgestorbenes",
+    "mangelnde r":"mangelnder","Blutversor gung":"Blutversorgung","Schmerzm ittel":"Schmerzmittel",
+    "Schmerze n":"Schmerzen","betreffend e":"betreffende","Bewusstse insverlust":"Bewusstseinsverlust",
+    "Prämolare n":"Prämolaren","Wurzelkan al":"Wurzelkanal","Zahnfleisc hspitze":"Zahnfleischspitze",
+    "Zahnfleisc h":"Zahnfleisch","Knochens ubstanz":"Knochensubstanz","Kompositf üllungen":"Kompositfüllungen",
+    "eingeschra ubt":"eingeschraubt","Gefühlswa hrnehmun g":"Gefühlswahrnehmung",
+    "Entzündun g":"Entzündung","Behandlun g":"Behandlung","Aufklappu ng":"Aufklappung",
+    "Schleimha ut":"Schleimhaut","Kiefergele nk":"Kiefergelenk","Kaumuskul atur":"Kaumuskulatur",
+    "Spüllösung für gangränös e":"Spüllösung für gangränöse","Wurzelkan äle":"Wurzelkanäle",
+    "Schmerza usschaltun g":"Schmerzausschaltung","Nichtedel metall":"Nichtedelmetall",
+    "Backenzäh ne":"Backenzähne","Implantatk örper":"Implantatkörper","Implantata ufbau":"Implantataufbau",
+    "Abformung verbunden":"Abformung verbunden","Abdruckm aterial":"Abdruckmaterial",
+    "Haftvermitt ler":"Haftvermittler","Zahnschm elz":"Zahnschmelz","Anwendun g":"Anwendung",
+    "zusammen ziehend":"zusammenziehend","Einschleif en":"Einschleifen","therapeutis che":"therapeutische",
+    "Kiefergele nksbeschw erden":"Kiefergelenksbeschwerden","vollkomme ne":"vollkommene",
+    "Ansammlu ng":"Ansammlung","Abflußmög lichkeit":"Abflußmöglichkeit","Implantata ufbauteil":"Implantataufbauteil",
+    "blutverdün nender":"blutverdünnender","Oberfläche n":"Oberflächen","Kunstoffkle bern":"Kunstoffklebern",
+    "Aufbau des Zahnes":"Aufbau des Zahnes","Röntgenübersichtsauf nahme":"Röntgenübersichtsaufnahme"
+  };
+  for(const [a,b] of Object.entries(fixes)) t=t.split(a).join(b);
+  // Einzelne abgetrennte Buchstaben am Wortende (z. B. „Schmerze n“, „betreffend e“).
+  t=t.replace(/([A-Za-zÄÖÜäöüß]{3,})\s+([a-z])(?=([ ,.;:!?)\]]|$))/g,"$1$2");
+  return t.replace(/\s{2,}/g," ").trim();
+};
+const compactText=s=>repairWordBreaks(s).toLocaleLowerCase("de-DE").replace(/[^a-z0-9äöüß]/g,"");
+function cleanStoredText(s){
+  const t=tidy(s);
+  const key=compactText(t);
+  if(!key) return t;
+  for(const list of MONTHS){
+    for(const v of list){
+      for(const candidate of [v.term,v.meaning,v.practice,v.prep]){
+        if(candidate && compactText(candidate)===key) return repairWordBreaks(candidate);
+      }
+    }
+  }
+  return repairWordBreaks(t);
+}
+const now=()=>new Date();
+const examMonth=()=>now().getMonth()+1;
+const exerciseMonth=()=>{const d=now(),m=d.getMonth()+1;return d.getDate()>=21?(m%12)+1:m};
+const examOpen=()=>{const d=now().getDate();return d>=16&&d<=20;};
+const monthName=m=>names[m-1]||`Monat ${m}`;
+const isTrainer=()=>String(state.profile?.role||"").toLowerCase()==="ausbilder";
+function fail(t,d=""){app.innerHTML=`<main><div class="card"><h1>mainzahn</h1><div class="error"><b>${esc(t)}</b>${d?`<br><br>${esc(d)}`:""}</div></div></main>`}
+let sb;
+
+// Passwort-Wiederherstellung: Die Rückleitung muss auf diese veröffentlichte Seite zeigen.
+const recoveryFromLink = /(?:[?#&])type=recovery(?:[&#]|$)/.test(location.href) ||
+  new URLSearchParams(location.search).get('token_hash') && new URLSearchParams(location.search).get('type')==='recovery';
+let recoveryMode=Boolean(recoveryFromLink);
+function authMessage(message,kind='error'){
+ const el=document.getElementById('auth-message');
+ if(el){el.textContent=message;el.style.color=kind==='ok'?'#18794e':'#b42318';el.classList.remove('hidden');}
+}
+function resetPasswordScreen(){
+ recoveryMode=true;
+ app.innerHTML=`<main><div class="card login"><div class="logo">mainzahn</div><p class="muted">Azubi Vokabeltrainer</p><h2>Neues Passwort festlegen</h2><p>Bitte gib dein neues Passwort zweimal ein (mindestens 8 Zeichen).</p><form id="reset-form"><input id="new-password" type="password" minlength="8" autocomplete="new-password" placeholder="Neues Passwort" required><input id="confirm-password" type="password" minlength="8" autocomplete="new-password" placeholder="Passwort wiederholen" required><button type="submit">Passwort speichern</button></form><p id="auth-message" class="hidden" role="status"></p><p><button id="back-to-login" class="secondary" type="button">Zur Anmeldung</button></p></div></main>`;
+ document.getElementById('back-to-login').onclick=async()=>{recoveryMode=false;history.replaceState({},'',location.pathname);await sb.auth.signOut();loginScreen()};
+ document.getElementById('reset-form').onsubmit=async e=>{
+  e.preventDefault();const password=document.getElementById('new-password').value;
+  if(password!==document.getElementById('confirm-password').value)return authMessage('Die Passwörter stimmen nicht überein.');
+  const btn=e.currentTarget.querySelector('button');btn.disabled=true;
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){btn.disabled=false;return authMessage('Der Link ist abgelaufen oder ungültig. Bitte fordere eine neue E-Mail an.');}
+  const {error}=await sb.auth.updateUser({password});btn.disabled=false;
+  if(error)return authMessage(error.message);
+  recoveryMode=false;history.replaceState({},'',location.pathname);
+  await sb.auth.signOut();loginScreen();authMessage('Dein Passwort wurde geändert. Du kannst dich jetzt anmelden.','ok');
+ };
+}
+async function loginScreen(){
+ app.innerHTML=`<main><div class="card login"><div class="logo">mainzahn</div><p class="muted">Azubi Vokabeltrainer</p><h2>Anmelden</h2><input id="email" type="email" autocomplete="email" placeholder="E-Mail"><input id="password" type="password" autocomplete="current-password" placeholder="Passwort"><button id="login">Anmelden</button><p><button id="forgot-password" class="secondary" type="button">Passwort vergessen?</button></p><p id="auth-message" class="hidden" role="status"></p></div></main>`;
+ document.getElementById('login').onclick=async()=>{
+  const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  if(error)authMessage(error.message);else await boot();
+ };
+ document.getElementById('forgot-password').onclick=()=>{
+  app.innerHTML=`<main><div class="card login"><div class="logo">mainzahn</div><h2>Passwort zurücksetzen</h2><p>Gib deine registrierte E-Mail-Adresse ein. Du erhältst einen Link, über den du ein neues Passwort festlegen kannst.</p><form id="forgot-form"><input id="recovery-email" type="email" autocomplete="email" placeholder="Deine E-Mail-Adresse" required><button type="submit">Reset-Link senden</button></form><p id="auth-message" class="hidden" role="status"></p><button class="secondary" id="return-login">Zurück zur Anmeldung</button></div></main>`;
+  document.getElementById('return-login').onclick=loginScreen;
+  document.getElementById('forgot-form').onsubmit=async e=>{
+   e.preventDefault();const btn=e.currentTarget.querySelector('button');btn.disabled=true;
+   const email=document.getElementById('recovery-email').value.trim();
+   const redirectTo=location.origin+location.pathname;
+   const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});btn.disabled=false;
+   if(error)return authMessage('E-Mail konnte nicht versendet werden: '+error.message);
+   authMessage('Falls ein Konto zu dieser E-Mail-Adresse existiert, erhältst du eine Nachricht. Bitte prüfe auch den Spam-Ordner.','ok');
+  };
+ };
+}
+
+function shell(content){
+ const tabs=isTrainer()
+   ? `<button class="${state.tab==='home'?'active':''}" data-tab="home">Übersicht</button><button class="${state.tab==='results'?'active':''}" data-tab="results">Ergebnisse</button>`
+   : `<button class="${state.tab==='home'?'active':''}" data-tab="home">Übersicht</button><button class="${state.tab==='learn'?'active':''}" data-tab="learn">Übung</button><button class="${state.tab==='exam'?'active':''}" data-tab="exam">Prüfung</button>`;
+ app.innerHTML=`<header><div class="top"><div><div class="brand">mainzahn</div><div class="sub">${isTrainer()?'Ausbilderbereich':'Azubi Vokabeltrainer'}</div></div><button id="out" class="secondary">Abmelden</button></div></header><main><div class="tabs">${tabs}</div>${content}</main>`;
+ document.getElementById('out').onclick=async()=>{await sb.auth.signOut();location.reload()};
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=async()=>{state.tab=b.dataset.tab;state.exam=null;if(state.tab==='learn')state.learnMode=null;if(state.tab==="results")await loadTrainerResults();render()});
+}
+
+function home(){
+ if(isTrainer()){
+   return `<div class="card"><h1>Willkommen, ${esc(state.profile.full_name)}</h1><p class="muted">Rolle: Ausbilder</p><div class="notice">Hier siehst du die Prüfungsergebnisse der Azubis – einschließlich der falsch beantworteten Vokabeln.</div><button data-go="results">Ergebnisse ansehen</button></div>`;
+ }
+ const em=exerciseMonth(),xm=examMonth();
+ return `<div class="card"><div class="row"><div><h1>Willkommen, ${esc(state.profile.full_name)}</h1><p class="muted">Rolle: ${esc(state.profile.role)}</p></div><span class="badge">${examOpen()?"Prüfung freigeschaltet":"Übungsphase"}</span></div></div><div class="grid"><div class="card learn"><h2>Übung – ${monthName(em)}</h2><div class="stat">${MONTHS[em-1].length}</div><div class="muted">Vokabeln</div><br><button data-go="learn">Übung starten</button></div><div class="card exam ${examOpen()?'':'locked'}"><h2>Prüfung – ${monthName(xm)}</h2><div class="stat">${examOpen()?MONTHS[xm-1].length:'–'}</div><div class="muted">${examOpen()?'Vokabeln':'nur vom 16.–20. freigeschaltet'}</div><br><button data-go="exam" ${examOpen()?'':'disabled'}>Prüfung starten</button></div></div><div class="notice">Ab dem <b>21. des Vormonats</b> beginnt die Übungsphase für den Folgemonat. Die Prüfung des aktuellen Monats ist nur vom <b>16.–20.</b> freigeschaltet.</div>`;
+}
+
+function learnView(){
+ const m=exerciseMonth(),list=MONTHS[m-1];
+ if(!state.learnMode){
+   return `<div class="card"><h2>Übung – ${monthName(m)}</h2><p class="muted">Wähle aus, wie du üben möchtest.</p><div class="grid"><div class="card learn"><h3>📖 Vokabeln lernen</h3><p>Alle ${list.length} Vokabeln für ${monthName(m)} in Ruhe durchgehen.</p><button id="startLearn">Vokabeln lernen</button></div><div class="card exam"><h3>📝 Probeprüfung</h3><p>Alle Vokabeln des aktuellen Übungsmonats mit vier Antwortmöglichkeiten. Das Ergebnis wird nicht als echte Prüfung gespeichert.</p><button id="startProbe">Probeprüfung starten</button></div><div class="card"><h3>✍️ Schreiben üben</h3><p>Vokabeln selbst eintippen und anschließend direkt mit der richtigen Antwort vergleichen.</p><button id="startWriting">Schreiben üben</button></div><div class="card"><h3>🔁 Fehlertraining</h3><p>Gezielt die Vokabeln wiederholen, die beim Üben falsch beantwortet wurden.</p><button id="startErrors">Fehlertraining</button></div></div></div>`;
+ }
+ const i=Math.min(state.learn,list.length-1),v=list[i];
+ return `<div class="card"><div class="row"><h2>Übung – ${monthName(m)}</h2><span>${i+1} / ${list.length}</span></div><div class="progress"><div class="bar" style="width:${((i+1)/list.length)*100}%"></div></div><br><h3>${esc(repairWordBreaks(v.term))}</h3><p style="font-size:20px;line-height:1.55">${esc(repairWordBreaks(v.meaning))}</p>${v.practice?`<p><b>Praxis:</b> ${esc(repairWordBreaks(v.practice))}</p>`:''}${v.prep?`<p><b>Aufbereitung:</b> ${esc(repairWordBreaks(v.prep))}</p>`:''}<div class="row"><button id="backLearnMenu" class="secondary">Übungsauswahl</button><div><button id="prev" class="secondary">Zurück</button> <button id="next">Weiter</button></div></div></div>`;
+}
+
+function shuffleProbe(a){
+ a=a.slice();
+ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+ return a;
+}
+
+
+function errorStoreKey(month=exerciseMonth()){return `mainzahn_practice_errors_${state.user?.id||"guest"}_${now().getFullYear()}_${month}`;}
+function loadPracticeErrorsLocal(month=exerciseMonth()){try{return JSON.parse(localStorage.getItem(errorStoreKey(month))||"[]")}catch(e){return []}}
+function savePracticeErrorsLocal(items,month=exerciseMonth()){localStorage.setItem(errorStoreKey(month),JSON.stringify(items));}
+async function loadPracticeErrors(month=exerciseMonth()){
+ if(!state.user?.id||!sb)return loadPracticeErrorsLocal(month);
+ const {data,error}=await sb.from('practice_errors').select('term,meaning,month').eq('user_id',state.user.id).eq('month',month);
+ if(error){console.error(error);return loadPracticeErrorsLocal(month)}
+ const items=(data||[]).map(x=>({term:x.term,meaning:x.meaning}));savePracticeErrorsLocal(items,month);return items;
+}
+async function addPracticeError(item,month=exerciseMonth()){
+ if(!state.user?.id||!sb)return;
+ await sb.from('practice_errors').delete().eq('user_id',state.user.id).eq('month',month).eq('term',item.term);
+ const {error}=await sb.from('practice_errors').insert({user_id:state.user.id,term:item.term,meaning:item.meaning,month});
+ if(error){console.error('Fehler konnte nicht gespeichert werden',error);return false}
+ return true;
+}
+async function removePracticeError(term,month=exerciseMonth()){
+ const {error}=await sb.from('practice_errors').delete().eq('user_id',state.user.id).eq('month',month).eq('term',term);
+ if(error){console.error('Fehler konnte nicht gelöscht werden',error);return false}return true;
+}
+
+function startProbeExam(){
+ const m=exerciseMonth();
+ const vocab=MONTHS[m-1].filter(v=>v&&v.term&&v.meaning);
+ if(vocab.length<4){alert('Die Vokabeldaten konnten für die Probeprüfung nicht geladen werden.');return;}
+ const count=vocab.length;
+ const questions=shuffleProbe(vocab).map(q=>{
+   const wrong=shuffleProbe(vocab.filter(v=>v!==q&&tidy(v.meaning)!==tidy(q.meaning))).slice(0,3).map(v=>v.meaning);
+   return {term:q.term,correct:q.meaning,options:shuffleProbe([q.meaning,...wrong]),answer:null};
+ });
+ let idx=0;
+ const overlay=document.createElement('div');overlay.className='probe-overlay';document.body.appendChild(overlay);
+ const close=()=>overlay.remove();
+ function draw(){
+   const q=questions[idx];
+   overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Probeprüfung</h1><div>${questions.length} Vokabeln aus ${monthName(m)} · wird nicht als echte Prüfung gespeichert</div></div><button class="probe-btn probe-secondary" id="probe-close">Beenden</button></div><div class="probe-card"><div style="display:flex;justify-content:space-between"><b>Frage ${idx+1} von ${questions.length}</b><span>${Math.round((idx+1)/questions.length*100)} %</span></div><div class="probe-progress"><div style="width:${(idx+1)/questions.length*100}%"></div></div><h2 style="font-size:28px">${esc(repairWordBreaks(q.term))}</h2><p>Welche Bedeutung ist richtig?</p><div class="probe-options">${q.options.map((o,i)=>`<button class="probe-option ${q.answer===i?'selected':''}" data-probe-answer="${i}">${esc(repairWordBreaks(o))}</button>`).join('')}</div><div class="probe-actions"><button class="probe-btn probe-secondary" id="probe-back" ${idx===0?'disabled':''}>Zurück</button><button class="probe-btn probe-primary" id="probe-next">${idx===questions.length-1?'Auswerten':'Weiter'}</button></div></div></div>`;
+   overlay.querySelector('#probe-close').onclick=close;
+   overlay.querySelectorAll('[data-probe-answer]').forEach(el=>el.onclick=()=>{q.answer=Number(el.dataset.probeAnswer);draw();});
+   overlay.querySelector('#probe-back').onclick=()=>{if(idx>0){idx--;draw();}};
+   overlay.querySelector('#probe-next').onclick=()=>{if(q.answer===null){alert('Bitte wähle zuerst eine Antwort aus.');return;}if(idx<questions.length-1){idx++;draw();}else results();};
+ }
+ async function results(){
+   const correct=questions.filter(q=>q.options[q.answer]===q.correct).length;
+   questions.forEach(q=>{
+     const chosen=q.answer===null?null:q.options[q.answer];
+     if(chosen!==q.correct) addPracticeError({term:q.term,meaning:q.correct},m);
+   });
+   overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Probeprüfung – Ergebnis</h1><div>Nur zum Üben · keine Speicherung in Supabase</div></div></div><div class="probe-card"><h2>${correct} von ${questions.length} richtig</h2><p>${Math.round(correct/questions.length*100)} %</p><div>${questions.map((q,i)=>{const chosen=q.answer===null?'Keine Antwort':q.options[q.answer],ok=chosen===q.correct;return `<div class="probe-result-row"><b>${i+1}. ${esc(repairWordBreaks(q.term))}</b><br>${ok?'✓ Richtig':'✗ Deine Antwort: '+esc(repairWordBreaks(chosen))+'<br>Richtig: '+esc(repairWordBreaks(q.correct))}</div>`;}).join('')}</div><div class="probe-actions"><button class="probe-btn probe-secondary" id="probe-close2">Zurück zur Übung</button><button class="probe-btn probe-primary" id="probe-again">Neue Probeprüfung</button></div></div></div>`;
+   overlay.querySelector('#probe-close2').onclick=close;overlay.querySelector('#probe-again').onclick=()=>{close();startProbeExam();};
+ }
+ draw();
+}
+
+
+function normalizeWritingText(s){
+ return String(s||"").toLocaleLowerCase("de-DE").replace(/ß/g,"ss")
+ .replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue")
+ .replace(/[^a-z0-9\s-]/g," ")
+ .replace(/\b(der|die|das|den|dem|des|ein|eine|einer|einem|einen|und|oder|ist|sind|im|in|am|an|auf|von|vom|zur|zum|zu|mit|fuer|durch|bei|als|auch)\b/g," ")
+ .replace(/\s+/g," ").trim();
+}
+function levenshteinWriting(a,b){
+ const dp=Array(b.length+1).fill(0).map((_,i)=>i);
+ for(let i=1;i<=a.length;i++){let prev=dp[0];dp[0]=i;
+  for(let j=1;j<=b.length;j++){const old=dp[j];dp[j]=Math.min(dp[j]+1,dp[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=old;}
+ } return dp[b.length];
+}
+function writingWordMatch(a,b){
+ if(a===b)return true;
+ if(a.length<4||b.length<4)return false;
+ const d=levenshteinWriting(a,b);
+ return d<=1||(Math.max(a.length,b.length)>=8&&d<=2);
+}
+function evaluateWritingAnswer(answer,correct){
+ const a=normalizeWritingText(answer),c=normalizeWritingText(correct);
+ if(!a)return "wrong";
+ if(a===c)return "exact";
+ if(levenshteinWriting(a,c)<=Math.max(2,Math.floor(c.length*.12)))return "content";
+
+ const aw=a.split(" ").filter(w=>w.length>=3);
+ const cw=c.split(" ").filter(w=>w.length>=3);
+ if(!cw.length)return "wrong";
+
+ // Wörter aus der Musterlösung, die in der eigenen Antwort sinngemäß vorkommen.
+ let matched=0;
+ for(const x of cw)if(aw.some(y=>writingWordMatch(y,x)))matched++;
+ const coverage=matched/cw.length;
+ const precision=aw.length?matched/aw.length:0;
+
+ // Kurze Antworten müssen die wesentlichen Begriffe treffen. Bei längeren
+ // Musterlösungen reicht eine kompakte, inhaltlich passende Formulierung.
+ if(cw.length<=2 && matched===cw.length)return "content";
+ if(cw.length>=3 && coverage>=.55 && precision>=.40)return "content";
+
+ // Viele Lernende formulieren bewusst kürzer als die hinterlegte Definition.
+ // Wenn mindestens drei aussagekräftige Wörter der eigenen Antwort in der
+ // Musterlösung vorkommen und der Großteil der eigenen Aussage passt, gilt sie
+ // ebenfalls als inhaltlich richtig. So wird z.B. eine korrekte Kurzdefinition
+ // nicht bestraft, nur weil die Musterlösung ausführlicher formuliert ist.
+ const meaningfulAnswerWords=aw.filter(w=>w.length>=4);
+ let answerMatches=0;
+ for(const y of meaningfulAnswerWords)if(cw.some(x=>writingWordMatch(y,x)))answerMatches++;
+ const answerCoverage=meaningfulAnswerWords.length?answerMatches/meaningfulAnswerWords.length:0;
+ if(answerMatches>=3 && answerCoverage>=.60)return "content";
+
+ return "wrong";
+}
+
+function startWritingPractice(){
+ const m=exerciseMonth(),list=shuffleProbe(MONTHS[m-1]); let i=0;
+ const overlay=document.createElement('div');overlay.className='probe-overlay';document.body.appendChild(overlay);
+ const close=()=>overlay.remove();
+ function draw(){const v=list[i];overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Schreiben üben</h1><div>${monthName(m)} · ${i+1} von ${list.length}</div></div><button class="probe-btn probe-secondary" id="write-close">Zurück</button></div><div class="probe-card"><h2>${esc(repairWordBreaks(v.term))}</h2><p>Schreibe die Bedeutung:</p><input id="write-answer" type="text" autocomplete="off" placeholder="Antwort eingeben"><div id="write-feedback"></div><div class="probe-actions"><button class="probe-btn probe-secondary" id="write-show">Lösung zeigen</button><button class="probe-btn probe-primary" id="write-next">Prüfen</button></div></div></div>`;
+ overlay.querySelector('#write-close').onclick=close; overlay.querySelector('#write-show').onclick=()=>{overlay.querySelector('#write-feedback').innerHTML=`<div class="notice"><b>Richtige Antwort:</b><br>${esc(repairWordBreaks(v.meaning))}</div>`};
+ overlay.querySelector('#write-next').onclick=async()=>{const a=tidy(overlay.querySelector('#write-answer').value),correct=tidy(v.meaning);if(!a){alert('Bitte gib zuerst eine Antwort ein.');return;}const verdict=evaluateWritingAnswer(a,v.meaning);if(verdict==='wrong')await addPracticeError({term:v.term,meaning:v.meaning},m);const label=verdict==='exact'?'✓ Richtig':verdict==='content'?'✓ Inhaltlich richtig':'✗ Noch nicht richtig.';overlay.querySelector('#write-feedback').innerHTML=`<div class="notice"><b>${label}</b><br>Hinterlegte Antwort: ${esc(repairWordBreaks(v.meaning))}</div>`;const b=overlay.querySelector('#write-next');b.textContent=i===list.length-1?'Beenden':'Weiter';b.onclick=()=>{if(i===list.length-1)close();else{i++;draw();}}};
+ } draw();
+}
+async function startErrorTraining(){
+ const m=exerciseMonth();
+ let errors=shuffleProbe(await loadPracticeErrors(m));
+ const overlay=document.createElement('div');overlay.className='probe-overlay';document.body.appendChild(overlay);
+ const close=()=>overlay.remove();
+
+ if(!errors.length){
+   overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Fehlertraining</h1><div>${monthName(m)} · Gezieltes Wiederholen</div></div></div><div class="probe-card"><h2>Keine Fehler zum Üben 🎉</h2><p>Falsch beantwortete Vokabeln aus der Probeprüfung oder aus „Schreiben üben“ erscheinen hier automatisch.</p><div class="probe-actions"><button class="probe-btn probe-primary" id="errors-close">Zurück zur Übungsauswahl</button></div></div></div>`;
+   overlay.querySelector('#errors-close').onclick=close;
+   return;
+ }
+
+ let i=0;
+ function draw(){
+   if(!errors.length){
+     overlay.innerHTML=`<div class="probe-wrap"><div class="probe-card"><h1>Fehlertraining geschafft 🎉</h1><p>Du hast alle gespeicherten Fehler richtig beantwortet.</p><button class="probe-btn probe-primary" id="errors-done">Zurück zur Übungsauswahl</button></div></div>`;
+     overlay.querySelector('#errors-done').onclick=close; return;
+   }
+   if(i>=errors.length)i=0;
+   const v=errors[i];
+   const monthVocab=MONTHS[m-1].filter(x=>x&&x.term&&x.meaning);
+   const wrong=shuffleProbe(monthVocab.filter(x=>tidy(x.meaning)!==tidy(v.meaning))).slice(0,3).map(x=>x.meaning);
+   const options=shuffleProbe([v.meaning,...wrong]);
+   overlay.innerHTML=`<div class="probe-wrap"><div class="probe-head"><div><h1 style="margin:0">Fehlertraining</h1><div>${monthName(m)} · ${errors.length} Fehler übrig</div></div><button class="probe-btn probe-secondary" id="errors-close">Zurück</button></div><div class="probe-card"><h2>${esc(repairWordBreaks(v.term))}</h2><p>Welche Bedeutung ist richtig?</p><div class="probe-options">${options.map((o,j)=>`<button class="probe-option" data-error-answer="${j}">${esc(repairWordBreaks(o))}</button>`).join('')}</div><div id="error-feedback"></div></div></div>`;
+   overlay.querySelector('#errors-close').onclick=close;
+   overlay.querySelectorAll('[data-error-answer]').forEach(el=>el.onclick=async()=>{
+     const picked=options[Number(el.dataset.errorAnswer)];
+     if(tidy(picked)===tidy(v.meaning)){
+       removePracticeError(v.term,m);
+       errors=errors.filter(x=>tidy(x.term)!==tidy(v.term));
+       overlay.querySelector('#error-feedback').innerHTML=`<div class="notice"><b>✓ Richtig!</b> Diese Vokabel wurde aus dem Fehlertraining entfernt.</div><div class="probe-actions"><button class="probe-btn probe-primary" id="error-next">Weiter</button></div>`;
+       overlay.querySelectorAll('[data-error-answer]').forEach(b=>b.disabled=true);
+       overlay.querySelector('#error-next').onclick=draw;
+     }else{
+       overlay.querySelector('#error-feedback').innerHTML=`<div class="notice"><b>✗ Noch nicht richtig.</b><br>Richtige Antwort: ${esc(repairWordBreaks(v.meaning))}</div><div class="probe-actions"><button class="probe-btn probe-primary" id="error-next">Noch einmal später</button></div>`;
+       overlay.querySelectorAll('[data-error-answer]').forEach(b=>b.disabled=true);
+       overlay.querySelector('#error-next').onclick=()=>{i=(i+1)%errors.length;draw();};
+     }
+   });
+ }
+ draw();
+}
+
+function makeChoices(list,i){
+ const correct=tidy(list[i].meaning);
+ let pool=list.map(x=>tidy(x.meaning)).filter(x=>x&&x!==correct);
+ pool.sort(()=>Math.random()-.5);
+ return [correct,...pool.slice(0,3)].sort(()=>Math.random()-.5);
+}
+
+async function saveExamResult(x,list){
+ const score=Math.round(x.correct/list.length*100);
+ const payload={
+   user_id:state.user.id,
+   month:examMonth(),
+   year:now().getFullYear(),
+   score,
+   correct_count:x.correct,
+   total_count:list.length,
+   mistakes:x.mistakes,
+   completed_at:new Date().toISOString()
+ };
+ const {error}=await sb.from("exam_results").insert(payload);
+ if(error){console.error(error);x.saveError=error.message}else{x.saved=true}
+}
+
+function mistakeList(items){
+ if(!items?.length)return `<div class="notice">Keine Fehler – alles richtig! 🎉</div>`;
+ return `<div class="card"><h3>Falsch beantwortete Vokabeln (${items.length})</h3>${items.map(e=>`<div class="error-item"><b>${esc(cleanStoredText(e.term))}</b><br><span class="muted">Deine Antwort:</span> ${esc(cleanStoredText(e.picked))}<br><span class="muted">Richtig:</span> <b>${esc(cleanStoredText(e.correct))}</b></div>`).join("")}</div>`;
+}
+
+function renderExam(){
+ const m=examMonth(),list=MONTHS[m-1];
+ if(!examOpen())return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung ist nur vom 16.–20. des Monats freigeschaltet.</p></div>`;
+ if(!state.exam)return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung umfasst <b>${list.length}</b> Vokabeln.</p><p class="muted">Nach dem Start werden die Antworten bewertet.</p><button id="startExam">Prüfung starten</button></div>`;
+ const x=state.exam;
+ if(x.i>=list.length){
+   const score=Math.round(x.correct/list.length*100);
+   return `<div class="card"><h2>Prüfung abgeschlossen</h2><div class="stat">${score}%</div><p>${x.correct} von ${list.length} richtig.</p>${x.saveError?`<div class="notice">Ergebnis konnte nicht in Supabase gespeichert werden: ${esc(x.saveError)}</div>`:`<div class="notice">${x.saved?"Ergebnis wurde gespeichert.":"Ergebnis wird gespeichert …"}</div>`}</div>${mistakeList(x.mistakes)}`;
+ }
+ const v=list[x.i];
+ if(!x.choices)x.choices=makeChoices(list,x.i);
+ return `<div class="card exam"><div class="row"><h2>Frage ${x.i+1} / ${list.length}</h2><span class="badge">Prüfung</span></div><div class="progress"><div class="bar" style="width:${((x.i+1)/list.length)*100}%"></div></div><br><h3>${esc(repairWordBreaks(v.term))}</h3><p>Welche Bedeutung ist richtig?</p>${x.choices.map((c,j)=>`<button class="choice" data-answer="${j}">${esc(repairWordBreaks(c))}</button>`).join('')}</div>`;
+}
+
+async function loadTrainerResults(){
+ state.trainerLoading=true;
+ const {data,error}=await sb.from("exam_results").select("id,user_id,month,year,score,correct_count,total_count,mistakes,completed_at,profiles!exam_results_user_id_fkey(full_name)").order("completed_at",{ascending:false});
+ state.trainerLoading=false;
+ if(error){state.trainerResults={error:error.message};return}
+ state.trainerResults=data||[];
+}
+
+function trainerResultsView(){
+ if(state.trainerLoading)return `<div class="card"><h2>Ergebnisse</h2><p>Lade Ergebnisse …</p></div>`;
+ if(state.trainerResults?.error)return `<div class="card"><h2>Ergebnisse</h2><div class="notice">Fehler beim Laden: ${esc(state.trainerResults.error)}</div></div>`;
+ if(!state.trainerResults.length)return `<div class="card"><h2>Ergebnisse</h2><p>Noch keine Prüfungsergebnisse vorhanden.</p></div>`;
+ return `<div class="card"><h2>Prüfungsergebnisse</h2><div style="overflow-x:auto"><table><thead><tr><th>Azubi</th><th>Prüfung</th><th>Ergebnis</th><th>Datum</th></tr></thead><tbody>${state.trainerResults.map((r,i)=>`<tr><td>${esc(r.profiles?.full_name||"Unbekannt")}</td><td>${esc(monthName(r.month))} ${esc(r.year)}</td><td class="${r.score>=80?'score-good':'score-bad'}">${esc(r.score)}% (${esc(r.correct_count)}/${esc(r.total_count)})</td><td>${esc(new Date(r.completed_at).toLocaleDateString("de-DE"))}</td></tr><tr><td colspan="4">${r.mistakes?.length?`<details><summary><b>${r.mistakes.length} Fehler anzeigen</b></summary>${r.mistakes.map(e=>`<div class="error-item"><b>${esc(cleanStoredText(e.term))}</b><br><span class="muted">Antwort des Azubis:</span> ${esc(cleanStoredText(e.picked))}<br><span class="muted">Richtig:</span> <b>${esc(cleanStoredText(e.correct))}</b></div>`).join("")}</details>`:`<span class="badge">Keine Fehler</span>`}</td></tr>`).join("")}</tbody></table></div></div>`;
+}
+
+function bind(){
+ document.querySelectorAll('[data-go]').forEach(b=>b.onclick=async()=>{state.tab=b.dataset.go;if(state.tab==='learn')state.learnMode=null;if(state.tab==="results")await loadTrainerResults();render()});
+ if(state.tab==='learn'){
+   const startLearn=document.getElementById('startLearn'),startProbe=document.getElementById('startProbe'),startWriting=document.getElementById('startWriting'),startErrors=document.getElementById('startErrors'),backMenu=document.getElementById('backLearnMenu');
+   if(startLearn)startLearn.onclick=()=>{state.learnMode='vocab';state.learn=0;render()};
+   if(startProbe)startProbe.onclick=startProbeExam;
+   if(startWriting)startWriting.onclick=startWritingPractice;
+   if(startErrors)startErrors.onclick=startErrorTraining;
+   if(backMenu)backMenu.onclick=()=>{state.learnMode=null;render()};
+   const p=document.getElementById('prev'),n=document.getElementById('next');
+   if(p)p.onclick=()=>{state.learn=Math.max(0,state.learn-1);render()};
+   if(n)n.onclick=()=>{state.learn=(state.learn+1)%MONTHS[exerciseMonth()-1].length;render()};
+ }
+ if(state.tab==='exam'){
+   const s=document.getElementById('startExam');
+   if(s)s.onclick=()=>{state.exam={i:0,correct:0,choices:null,mistakes:[],saved:false,saveStarted:false};render()};
+   document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=async()=>{
+     const list=MONTHS[examMonth()-1],v=list[state.exam.i],correct=tidy(v.meaning),picked=tidy(state.exam.choices[Number(b.dataset.answer)]);
+     if(picked===correct)state.exam.correct++;
+     else state.exam.mistakes.push({term:repairWordBreaks(v.term),picked:repairWordBreaks(picked),correct:repairWordBreaks(correct)});
+     state.exam.i++;state.exam.choices=null;
+     if(state.exam.i>=list.length&&!state.exam.saveStarted){
+       state.exam.saveStarted=true;
+       render();
+       await saveExamResult(state.exam,list);
+     }
+     render();
+   });
+ }
+}
+
+function render(){
+ if(isTrainer()&&state.tab!=="home"&&state.tab!=="results")state.tab="home";
+ let c=isTrainer()?(state.tab==="results"?trainerResultsView():home()):(state.tab==='home'?home():state.tab==='learn'?learnView():renderExam());
+ shell(c);bind();
+}
+
+async function boot(){
+ if(recoveryMode){resetPasswordScreen();return;}
+ const {data,error}=await sb.auth.getSession();
+ if(error)throw error;
+ if(!data.session)return loginScreen();
+ state.user=data.session.user;
+ const r=await sb.from('profiles').select('*').eq('id',state.user.id).maybeSingle();
+ if(r.error)throw r.error;
+ if(!r.data)return fail('Benutzerprofil fehlt','Für diesen Benutzer fehlt ein Eintrag in profiles.');
+ state.profile=r.data;
+ render();
+}
+try{const c=window.MAINZAHN_CONFIG;if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw new Error('config.js ist leer oder wird nicht gefunden.');const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');sb=createClient(c.supabaseUrl,c.supabaseAnonKey);
+ sb.auth.onAuthStateChange((event)=>{
+  if(event==='PASSWORD_RECOVERY'){recoveryMode=true;resetPasswordScreen();}
+ });
+ if(recoveryFromLink && new URLSearchParams(location.search).has('token_hash')){
+  const q=new URLSearchParams(location.search);
+  const {error}=await sb.auth.verifyOtp({token_hash:q.get('token_hash'),type:'recovery'});
+  resetPasswordScreen();if(error)authMessage('Der Link ist ungültig oder abgelaufen. Bitte fordere eine neue E-Mail an.');
+ }else await boot()}catch(e){fail('mainzahn konnte nicht gestartet werden',e.message)}
+
+</script>
+
+<style id="probepruefung-style">
+  .probe-overlay{
+    position:fixed; inset:0; z-index:9999; background:#f4f6fa; overflow:auto;
+    font-family:inherit; color:#172033;
+  }
+  .probe-wrap{max-width:920px;margin:0 auto;padding:24px 18px 60px}
+  .probe-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+  .probe-card{background:#fff;border:1px solid #dde2ea;border-radius:18px;padding:22px;box-shadow:0 5px 18px rgba(0,0,0,.06)}
+  .probe-options{display:grid;gap:10px;margin-top:18px}
+  .probe-option{width:100%;text-align:left;border:1px solid #ccd3dd;background:#fff;color:#172033;border-radius:12px;padding:14px;font-size:16px;cursor:pointer}
+  .probe-option.selected{outline:3px solid #a90019;border-color:#a90019}
+  .probe-actions{display:flex;justify-content:space-between;gap:12px;margin-top:22px}
+  .probe-btn{border:0;border-radius:12px;padding:12px 18px;font-weight:800;cursor:pointer}
+  .probe-primary{background:#a90019;color:#fff}.probe-secondary{background:#e9edf3;color:#172033}
+  .probe-progress{height:9px;background:#e6e9ef;border-radius:99px;overflow:hidden;margin:12px 0 22px}
+  .probe-progress>div{height:100%;background:#a90019}
+  .probe-result-row{padding:12px 0;border-bottom:1px solid #e8ebf0}
+  @media(max-width:600px){.probe-wrap{padding:16px 12px 50px}}
+</style>
+
+
+</body>
+</html>
