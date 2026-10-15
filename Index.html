@@ -2413,14 +2413,37 @@ const now=()=>new Date();
 const examMonth=()=>now().getMonth()+1;
 const exerciseMonth=()=>{const d=now(),m=d.getMonth()+1;return d.getDate()>=21?(m%12)+1:m};
 const examOpen=()=>{const d=now().getDate();return d>=16&&d<=20;};
+const EXAM_SECONDS_PER_QUESTION=50;
+let examTimerHandle=null;
+const examStorageKey=()=>`mainzahn-exam-${state.user?.id}-${now().getFullYear()}-${examMonth()}`;
+const examTimeLeft=x=>Math.max(0,Math.ceil((x.deadline-Date.now())/1000));
+const formatExamTime=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+function persistExam(){if(state.exam&&state.user)sessionStorage.setItem(examStorageKey(),JSON.stringify(state.exam));}
+function clearExamTimer(){if(examTimerHandle!==null){clearInterval(examTimerHandle);examTimerHandle=null;}}
+async function finishExam(timedOut=false){
+ const x=state.exam;if(!x||x.saveStarted)return;
+ x.saveStarted=true;x.timedOut=timedOut;clearExamTimer();
+ const list=MONTHS[examMonth()-1];
+ if(timedOut){for(let j=x.i;j<list.length;j++)x.mistakes.push({term:repairWordBreaks(list[j].term),picked:"Nicht beantwortet (Zeit abgelaufen)",correct:repairWordBreaks(list[j].meaning)});}
+ x.i=list.length;persistExam();render();
+ await saveExamResult(x,list);persistExam();render();
+}
+function startExamTimer(){
+ clearExamTimer();if(!state.exam||state.exam.i>=MONTHS[examMonth()-1].length)return;
+ const tick=()=>{const x=state.exam;if(!x||x.saveStarted){clearExamTimer();return;}const left=examTimeLeft(x);const el=document.getElementById("exam-countdown");if(el)el.textContent=formatExamTime(left);if(left<=0)void finishExam(true);};
+ tick();examTimerHandle=setInterval(tick,250);
+}
+
 const monthName=m=>names[m-1]||`Monat ${m}`;
 const isTrainer=()=>String(state.profile?.role||"").toLowerCase()==="ausbilder";
 function fail(t,d=""){app.innerHTML=`<main><div class="card"><h1>mainzahn</h1><div class="error"><b>${esc(t)}</b>${d?`<br><br>${esc(d)}`:""}</div></div></main>`}
 let sb;
 
 // Passwort-Wiederherstellung: Die Rückleitung muss auf diese veröffentlichte Seite zeigen.
-const recoveryFromLink = /(?:[?#&])type=recovery(?:[&#]|$)/.test(location.href) ||
-  new URLSearchParams(location.search).get('token_hash') && new URLSearchParams(location.search).get('type')==='recovery';
+const recoveryParams = new URLSearchParams(location.search);
+const recoveryFromLink = recoveryParams.get('reset')==='1' ||
+  /(?:[?#&])type=recovery(?:[&#]|$)/.test(location.href) ||
+  (recoveryParams.has('token_hash') && recoveryParams.get('type')==='recovery');
 let recoveryMode=Boolean(recoveryFromLink);
 function authMessage(message,kind='error'){
  const el=document.getElementById('auth-message');
@@ -2455,7 +2478,7 @@ async function loginScreen(){
   document.getElementById('forgot-form').onsubmit=async e=>{
    e.preventDefault();const btn=e.currentTarget.querySelector('button');btn.disabled=true;
    const email=document.getElementById('recovery-email').value.trim();
-   const redirectTo=location.origin+location.pathname;
+   const redirectTo=location.origin+location.pathname+'?reset=1';
    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});btn.disabled=false;
    if(error)return authMessage('E-Mail konnte nicht versendet werden: '+error.message);
    authMessage('Falls ein Konto zu dieser E-Mail-Adresse existiert, erhältst du eine Nachricht. Bitte prüfe auch den Spam-Ordner.','ok');
@@ -2469,7 +2492,7 @@ function shell(content){
    : `<button class="${state.tab==='home'?'active':''}" data-tab="home">Übersicht</button><button class="${state.tab==='learn'?'active':''}" data-tab="learn">Übung</button><button class="${state.tab==='exam'?'active':''}" data-tab="exam">Prüfung</button>`;
  app.innerHTML=`<header><div class="top"><div><div class="brand">mainzahn</div><div class="sub">${isTrainer()?'Ausbilderbereich':'Azubi Vokabeltrainer'}</div></div><button id="out" class="secondary">Abmelden</button></div></header><main><div class="tabs">${tabs}</div>${content}</main>`;
  document.getElementById('out').onclick=async()=>{await sb.auth.signOut();location.reload()};
- document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=async()=>{state.tab=b.dataset.tab;state.exam=null;if(state.tab==='learn')state.learnMode=null;if(state.tab==="results")await loadTrainerResults();render()});
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=async()=>{state.tab=b.dataset.tab;if(state.tab==='learn')state.learnMode=null;if(state.tab==="results")await loadTrainerResults();render()});
 }
 
 function home(){
@@ -2687,15 +2710,15 @@ function mistakeList(items){
 function renderExam(){
  const m=examMonth(),list=MONTHS[m-1];
  if(!examOpen())return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung ist nur vom 16.–20. des Monats freigeschaltet.</p></div>`;
- if(!state.exam)return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung umfasst <b>${list.length}</b> Vokabeln.</p><p class="muted">Nach dem Start werden die Antworten bewertet.</p><button id="startExam">Prüfung starten</button></div>`;
+ if(!state.exam)return `<div class="card exam"><h2>Prüfung – ${monthName(m)}</h2><p>Die Prüfung umfasst <b>${list.length}</b> Vokabeln.</p><p class="muted">Zeitlimit: ${formatExamTime(list.length*EXAM_SECONDS_PER_QUESTION)} (50 Sekunden je Frage). Die Zeit beginnt beim Klick auf „Prüfung starten“. Nicht beantwortete Fragen zählen nach Ablauf als falsch.</p><button id="startExam">Prüfung starten</button></div>`;
  const x=state.exam;
  if(x.i>=list.length){
    const score=Math.round(x.correct/list.length*100);
-   return `<div class="card"><h2>Prüfung abgeschlossen</h2><div class="stat">${score}%</div><p>${x.correct} von ${list.length} richtig.</p>${x.saveError?`<div class="notice">Ergebnis konnte nicht in Supabase gespeichert werden: ${esc(x.saveError)}</div>`:`<div class="notice">${x.saved?"Ergebnis wurde gespeichert.":"Ergebnis wird gespeichert …"}</div>`}</div>${mistakeList(x.mistakes)}`;
+   return `<div class="card"><h2>Prüfung abgeschlossen</h2>${x.timedOut?`<div class="notice">Die Prüfungszeit ist abgelaufen. Unbeantwortete Fragen wurden als falsch gewertet.</div>`:""}<div class="stat">${score}%</div><p>${x.correct} von ${list.length} richtig.</p>${x.saveError?`<div class="notice">Ergebnis konnte nicht in Supabase gespeichert werden: ${esc(x.saveError)}</div>`:`<div class="notice">${x.saved?"Ergebnis wurde gespeichert.":"Ergebnis wird gespeichert …"}</div>`}</div>${mistakeList(x.mistakes)}`;
  }
  const v=list[x.i];
  if(!x.choices)x.choices=makeChoices(list,x.i);
- return `<div class="card exam"><div class="row"><h2>Frage ${x.i+1} / ${list.length}</h2><span class="badge">Prüfung</span></div><div class="progress"><div class="bar" style="width:${((x.i+1)/list.length)*100}%"></div></div><br><h3>${esc(repairWordBreaks(v.term))}</h3><p>Welche Bedeutung ist richtig?</p>${x.choices.map((c,j)=>`<button class="choice" data-answer="${j}">${esc(repairWordBreaks(c))}</button>`).join('')}</div>`;
+ return `<div class="card exam"><div class="row"><h2>Frage ${x.i+1} / ${list.length}</h2><span class="badge">Verbleibend: <span id="exam-countdown">${formatExamTime(examTimeLeft(x))}</span></span></div><div class="progress"><div class="bar" style="width:${((x.i+1)/list.length)*100}%"></div></div><br><h3>${esc(repairWordBreaks(v.term))}</h3><p>Welche Bedeutung ist richtig?</p>${x.choices.map((c,j)=>`<button class="choice" data-answer="${j}">${esc(repairWordBreaks(c))}</button>`).join('')}</div>`;
 }
 
 async function loadTrainerResults(){
@@ -2728,17 +2751,15 @@ function bind(){
  }
  if(state.tab==='exam'){
    const s=document.getElementById('startExam');
-   if(s)s.onclick=()=>{state.exam={i:0,correct:0,choices:null,mistakes:[],saved:false,saveStarted:false};render()};
+   if(s)s.onclick=()=>{state.exam={i:0,correct:0,choices:null,mistakes:[],saved:false,saveStarted:false,deadline:Date.now()+MONTHS[examMonth()-1].length*EXAM_SECONDS_PER_QUESTION*1000};persistExam();render()};
    document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=async()=>{
+     if(!state.exam||state.exam.saveStarted)return;
+     if(examTimeLeft(state.exam)<=0){await finishExam(true);return;}
      const list=MONTHS[examMonth()-1],v=list[state.exam.i],correct=tidy(v.meaning),picked=tidy(state.exam.choices[Number(b.dataset.answer)]);
      if(picked===correct)state.exam.correct++;
      else state.exam.mistakes.push({term:repairWordBreaks(v.term),picked:repairWordBreaks(picked),correct:repairWordBreaks(correct)});
-     state.exam.i++;state.exam.choices=null;
-     if(state.exam.i>=list.length&&!state.exam.saveStarted){
-       state.exam.saveStarted=true;
-       render();
-       await saveExamResult(state.exam,list);
-     }
+     state.exam.i++;state.exam.choices=null;persistExam();
+     if(state.exam.i>=list.length){await finishExam(false);return;}
      render();
    });
  }
@@ -2747,7 +2768,7 @@ function bind(){
 function render(){
  if(isTrainer()&&state.tab!=="home"&&state.tab!=="results")state.tab="home";
  let c=isTrainer()?(state.tab==="results"?trainerResultsView():home()):(state.tab==='home'?home():state.tab==='learn'?learnView():renderExam());
- shell(c);bind();
+ shell(c);bind();if(state.exam&&!isTrainer()&&state.exam.i<MONTHS[examMonth()-1].length)startExamTimer();
 }
 
 async function boot(){
@@ -2760,16 +2781,29 @@ async function boot(){
  if(r.error)throw r.error;
  if(!r.data)return fail('Benutzerprofil fehlt','Für diesen Benutzer fehlt ein Eintrag in profiles.');
  state.profile=r.data;
+ try{const saved=sessionStorage.getItem(examStorageKey());if(saved){const x=JSON.parse(saved);if(x&&Number.isFinite(x.deadline)&&Number.isInteger(x.i)&&Array.isArray(x.mistakes)&&x.i>=0&&x.i<=MONTHS[examMonth()-1].length)state.exam=x;}}catch(e){console.warn("Prüfungsstand konnte nicht geladen werden",e);}
  render();
 }
 try{const c=window.MAINZAHN_CONFIG;if(!c?.supabaseUrl||!c?.supabaseAnonKey)throw new Error('config.js ist leer oder wird nicht gefunden.');const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');sb=createClient(c.supabaseUrl,c.supabaseAnonKey);
  sb.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY'){recoveryMode=true;resetPasswordScreen();}
  });
- if(recoveryFromLink && new URLSearchParams(location.search).has('token_hash')){
+ if(recoveryFromLink){
   const q=new URLSearchParams(location.search);
-  const {error}=await sb.auth.verifyOtp({token_hash:q.get('token_hash'),type:'recovery'});
-  resetPasswordScreen();if(error)authMessage('Der Link ist ungültig oder abgelaufen. Bitte fordere eine neue E-Mail an.');
+  let recoveryError=null;
+  if(q.has('token_hash') && q.get('type')==='recovery'){
+   const result=await sb.auth.verifyOtp({token_hash:q.get('token_hash'),type:'recovery'});
+   recoveryError=result.error;
+  }else if(q.has('code')){
+   const result=await sb.auth.exchangeCodeForSession(q.get('code'));
+   recoveryError=result.error;
+  }
+  // Bei Links mit #access_token verarbeitet supabase-js den Link automatisch.
+  const sessionResult=await sb.auth.getSession();
+  resetPasswordScreen();
+  if(recoveryError || sessionResult.error || !sessionResult.data.session){
+   authMessage('Der Wiederherstellungslink konnte nicht bestätigt werden oder ist abgelaufen. Bitte fordere einen neuen Link an.');
+  }
  }else await boot()}catch(e){fail('mainzahn konnte nicht gestartet werden',e.message)}
 
 </script>
